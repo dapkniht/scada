@@ -105,7 +105,11 @@
                     <!-- VISUALISASI INTAKE -->
                     <div class="scada-container">
                         <h2 class="text-xl font-bold text-gray-800 mb-4">Water Intake Visualization (P&ID)</h2>
-                        <div id="intake-schematic" class="h-96 w-full relative">
+                        <div class="relative overflow-hidden">
+                            <div id="visualization-slider" class="flex h-96 transition-transform duration-500 ease-out">
+                                <div class="min-w-full p-0.5">
+                                    <div class="w-full h-full rounded-lg border border-gray-200 bg-white">
+                                        <div id="intake-schematic" class="h-full w-full relative">
                             <!-- SVG Skematik -->
                             <svg class="w-full h-full" viewBox="0 0 800 350" xmlns="http://www.w3.org/2000/svg">
                                 <!-- Sumber Air (Kolam/Sungai) -->
@@ -149,6 +153,19 @@
                                 <path d="M 600 150 H 750" fill="none" stroke="#4a90e2" stroke-width="7"/>
                                 <text x="750" y="145" class="text-sm font-semibold fill-green-700" text-anchor="end">Menuju WTP</text>
                             </svg>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="min-w-full p-0.5">
+                                    <img src="illustration.png" alt="Ilustrasi Water Intake" class="w-full h-full object-contain rounded-lg border border-gray-200 bg-white" loading="lazy">
+                                </div>
+                            </div>
+                            <button type="button" aria-label="Prev" onclick="prevVisualizationSlide()" class="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-gray-700 rounded-full w-8 h-8 flex items-center justify-center shadow border">‹</button>
+                            <button type="button" aria-label="Next" onclick="nextVisualizationSlide()" class="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-gray-700 rounded-full w-8 h-8 flex items-center justify-center shadow border">›</button>
+                            <div class="absolute bottom-2 left-1/2 -translate-x-1/2 flex space-x-2">
+                                <span id="viz-dot-0" onclick="showVisualizationSlide(0)" class="w-2.5 h-2.5 rounded-full bg-gray-300 cursor-pointer"></span>
+                                <span id="viz-dot-1" onclick="showVisualizationSlide(1)" class="w-2.5 h-2.5 rounded-full bg-gray-300 cursor-pointer"></span>
+                            </div>
                         </div>
                     </div>
                     
@@ -365,15 +382,228 @@
             <!-- Placeholder for Log History and Log Alarm pages -->
             <div id="page-log_pompa" class="page-content hidden">
                 <h2 class="text-2xl font-bold text-gray-800 mb-4">Log History Penggunaan Pompa</h2>
-                <div class="bg-white p-6 rounded-xl shadow-lg"><p class="text-gray-600">Tabel riwayat penggunaan dan parameter pompa di sini. (Fitur Export CSV/XLS).</p></div>
+                <div class="bg-white p-4 md:p-6 rounded-xl shadow-lg space-y-4">
+                    <div class="grid md:grid-cols-6 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Tanggal Dari</label>
+                            <input type="date" id="pump-date-from" class="w-full p-2 border rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Tanggal Hingga</label>
+                            <input type="date" id="pump-date-to" class="w-full p-2 border rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Pompa</label>
+                            <select id="pump-id" class="w-full p-2 border rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">
+                                <option value="ALL">Semua</option>
+                                <option value="1">Pompa 1</option>
+                                <option value="2">Pompa 2</option>
+                                <option value="3">Pompa 3</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Status</label>
+                            <select id="pump-status" class="w-full p-2 border rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">
+                                <option value="ALL">Semua</option>
+                                <option value="RUNNING">RUNNING</option>
+                                <option value="STOP">STOP</option>
+                                <option value="FAULT">FAULT</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Speed Min (%)</label>
+                            <input type="number" step="1" id="pump-speed-min" placeholder="0" class="w-full p-2 border rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Arus Min (A)</label>
+                            <input type="number" step="0.1" id="pump-current-min" placeholder="0.0" class="w-full p-2 border rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                    </div>
+
+                    <div class="grid md:grid-cols-3 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Speed Max (%)</label>
+                            <input type="number" step="1" id="pump-speed-max" placeholder="" class="w-full p-2 border rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Arus Max (A)</label>
+                            <input type="number" step="0.1" id="pump-current-max" placeholder="" class="w-full p-2 border rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Cari (Deskripsi/Note)</label>
+                            <input type="text" id="pump-search" placeholder="kata kunci..." class="w-full p-2 border rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap gap-3">
+                        <button id="pump-apply" class="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">Terapkan Filter</button>
+                        <button id="pump-reset" class="px-3 py-2 bg-gray-200 text-gray-800 rounded-lg text-sm hover:bg-gray-300">Reset</button>
+                        <button id="pump-export" class="px-3 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 flex items-center">
+                            <i data-lucide="download" class="w-4 h-4 mr-1"></i> Export CSV
+                        </button>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Waktu</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Pompa</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Speed (%)</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Arus (A)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pump-log-body" class="bg-white divide-y divide-gray-200">
+                                <tr><td colspan="5" class="py-4 text-center text-gray-500">Belum ada riwayat pompa.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="flex items-center justify-between pt-2">
+                        <div class="text-sm text-gray-600">
+                            <span id="pump-page-info">Halaman 1</span>
+                        </div>
+                        <div class="space-x-2">
+                            <button id="pump-prev" class="px-3 py-1 rounded border text-sm hover:bg-gray-50">Prev</button>
+                            <button id="pump-next" class="px-3 py-1 rounded border text-sm hover:bg-gray-50">Next</button>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div id="page-log_flow" class="page-content hidden">
                 <h2 class="text-2xl font-bold text-gray-800 mb-4">Log History Totalizer Flowmeter</h2>
-                <div class="bg-white p-6 rounded-xl shadow-lg"><p class="text-gray-600">Tabel riwayat totalizer flowmeter di sini. (Fitur Export CSV/XLS).</p></div>
+                <div class="bg-white p-4 md:p-6 rounded-xl shadow-lg space-y-4">
+                    <div class="grid md:grid-cols-6 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Tanggal Dari</label>
+                            <input type="date" id="flow-date-from" class="w-full p-2 border rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Tanggal Hingga</label>
+                            <input type="date" id="flow-date-to" class="w-full p-2 border rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Debit Min (L/s)</label>
+                            <input type="number" step="0.1" id="flow-debit-min" placeholder="0" class="w-full p-2 border rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Debit Max (L/s)</label>
+                            <input type="number" step="0.1" id="flow-debit-max" placeholder="" class="w-full p-2 border rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Totalizer Min (m³)</label>
+                            <input type="number" step="0.01" id="flow-total-min" placeholder="" class="w-full p-2 border rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Totalizer Max (m³)</label>
+                            <input type="number" step="0.01" id="flow-total-max" placeholder="" class="w-full p-2 border rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap gap-3">
+                        <button id="flow-apply" class="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">Terapkan Filter</button>
+                        <button id="flow-reset" class="px-3 py-2 bg-gray-200 text-gray-800 rounded-lg text-sm hover:bg-gray-300">Reset</button>
+                        <button id="flow-export" class="px-3 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 flex items-center">
+                            <i data-lucide="download" class="w-4 h-4 mr-1"></i> Export CSV
+                        </button>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Waktu</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Debit (L/s)</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Totalizer (m³)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="flow-log-body" class="bg-white divide-y divide-gray-200">
+                                <tr><td colspan="3" class="py-4 text-center text-gray-500">Belum ada riwayat flow.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="flex items-center justify-between pt-2">
+                        <div class="text-sm text-gray-600">
+                            <span id="flow-page-info">Halaman 1</span>
+                        </div>
+                        <div class="space-x-2">
+                            <button id="flow-prev" class="px-3 py-1 rounded border text-sm hover:bg-gray-50">Prev</button>
+                            <button id="flow-next" class="px-3 py-1 rounded border text-sm hover:bg-gray-50">Next</button>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div id="page-log_alarm" class="page-content hidden">
                 <h2 class="text-2xl font-bold text-gray-800 mb-4">Log Alarm & Events (Lengkap)</h2>
-                <div class="bg-white p-6 rounded-xl shadow-lg"><p class="text-gray-600">Daftar lengkap semua alarm, termasuk yang sudah di-Acknowledge. (Fitur Filter, Export CSV).</p></div>
+                <div class="bg-white p-4 md:p-6 rounded-xl shadow-lg space-y-4">
+                    <div class="grid md:grid-cols-5 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Tanggal Dari</label>
+                            <input type="date" id="log-date-from" class="w-full p-2 border rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Tanggal Hingga</label>
+                            <input type="date" id="log-date-to" class="w-full p-2 border rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Prioritas</label>
+                            <select id="log-priority" class="w-full p-2 border rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">
+                                <option value="ALL">Semua</option>
+                                <option value="CRITICAL">CRITICAL</option>
+                                <option value="WARNING">WARNING</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Event</label>
+                            <select id="log-event" class="w-full p-2 border rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">
+                                <option value="ALL">Semua</option>
+                                <option value="RAISE">RAISE</option>
+                                <option value="ACK">ACK</option>
+                                <option value="CLEAR">CLEAR</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Cari (Deskripsi)</label>
+                            <input type="text" id="log-search" placeholder="Kata kunci..." class="w-full p-2 border rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap gap-3">
+                        <button id="log-apply" class="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">Terapkan Filter</button>
+                        <button id="log-reset" class="px-3 py-2 bg-gray-200 text-gray-800 rounded-lg text-sm hover:bg-gray-300">Reset</button>
+                        <button id="log-export" class="px-3 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 flex items-center">
+                            <i data-lucide="download" class="w-4 h-4 mr-1"></i> Export CSV
+                        </button>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Waktu</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Event</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Prioritas</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Deskripsi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="alarm-log-body" class="bg-white divide-y divide-gray-200">
+                                <tr><td colspan="4" class="py-4 text-center text-gray-500">Belum ada riwayat alarm.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="flex items-center justify-between pt-2">
+                        <div class="text-sm text-gray-600">
+                            <span id="log-page-info">Halaman 1</span>
+                        </div>
+                        <div class="space-x-2">
+                            <button id="log-prev" class="px-3 py-1 rounded border text-sm hover:bg-gray-50">Prev</button>
+                            <button id="log-next" class="px-3 py-1 rounded border text-sm hover:bg-gray-50">Next</button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Simple Modal for Alert/Warning -->
@@ -430,9 +660,36 @@
         flowmeter: { debit: 0, totalizer: 12345.67 },
         level: 3.5, // meter
         alarms: [],
+        alarmHistory: [], // {timeISO, time, priority, description, event}
+        flowHistory: [],  // {timeISO, time, debit, totalizer}
+        pumpHistory: [],  // {timeISO, time, pumpId, status, speedPct, currentA}
     };
 
     // --- UTILITIES & MOCK API ---
+    // Alarm History Utilities
+    function pushAlarmHistory(entry) {
+        // entry: {timeISO, time, priority, description, event}
+        STATE.alarmHistory.unshift(entry);
+        // Keep reasonable cap
+        if (STATE.alarmHistory.length > 2000) {
+            STATE.alarmHistory.length = 2000;
+        }
+    }
+
+    function recordEvent(priority, description, event) {
+        const now = new Date();
+        pushAlarmHistory({
+            timeISO: now.toISOString(),
+            time: now.toLocaleString(),
+            priority,
+            description,
+            event
+        });
+        // If currently on log page, refresh
+        if (!document.getElementById('page-log_alarm').classList.contains('hidden')) {
+            renderAlarmLog();
+        }
+    }
 
     // Simple Custom Alert Modal
     function showAlertModal(title, message) {
@@ -529,6 +786,15 @@
         
         // Update mobile menu selection
         document.getElementById('mobile-menu').value = pageId;
+
+        // Refresh log pages on navigation
+        if (pageId === 'log_alarm') {
+            renderAlarmLog();
+        } else if (pageId === 'log_flow') {
+            renderFlowLog();
+        } else if (pageId === 'log_pompa') {
+            renderPumpLog();
+        }
     }
 
     // --- COMMANDING & CONTROLLING MOCK (OPERATOR & ADMIN) ---
@@ -685,6 +951,11 @@
         if (STATE.level < 1.0) STATE.level = 1.0; // Batas Bawah
         if (STATE.level > 4.0) STATE.level = 4.0; // Batas Atas
         
+        // Rekam sampel flow secara periodik
+        recordFlowSample();
+        // Rekam snapshot pompa secara periodik
+        recordPumpSamples();
+
         checkAlarms();
         updateUI();
     }
@@ -696,24 +967,32 @@
 
         // Alarm 1: Level Air Kritis
         if (STATE.level <= CONFIG.ALARM_THRESHOLD_LEVEL && !STATE.alarms.some(a => a.description.includes('Level air rendah'))) {
+            const desc = `Level air rendah (${STATE.level} m). Intake terancam kering!`;
             STATE.alarms.push({
                 time: new Date().toLocaleTimeString(),
                 priority: 'CRITICAL',
-                description: `Level air rendah (${STATE.level} m). Intake terancam kering!`,
+                description: desc,
                 acknowledged: false
             });
+            recordEvent('CRITICAL', desc, 'RAISE');
         }
         
         // Alarm 2: Debit Hampir Maksimal
         if (STATE.flowmeter.debit >= CONFIG.ALARM_THRESHOLD_DEBIT && !STATE.alarms.some(a => a.description.includes('Debit mendekati batas maksimal'))) {
+            const descWarn = `Debit mendekati batas maksimal sistem (${STATE.flowmeter.debit.toFixed(1)} L/s).`;
             STATE.alarms.push({
                 time: new Date().toLocaleTimeString(),
                 priority: 'WARNING',
-                description: `Debit mendekati batas maksimal sistem (${STATE.flowmeter.debit.toFixed(1)} L/s).`,
+                description: descWarn,
                 acknowledged: false
             });
+            recordEvent('WARNING', descWarn, 'RAISE');
         } else if (STATE.flowmeter.debit < CONFIG.ALARM_THRESHOLD_DEBIT) {
             // Clear warning jika sudah teratasi
+            const had = STATE.alarms.some(a => a.description.includes('Debit mendekati batas maksimal'));
+            if (had) {
+                recordEvent('WARNING', 'Debit mendekati batas maksimal sistem CLEARED', 'CLEAR');
+            }
             STATE.alarms = STATE.alarms.filter(a => !a.description.includes('Debit mendekati batas maksimal'));
         }
 
@@ -722,17 +1001,20 @@
             if (p.currentA > CONFIG.MAX_CURRENT * 1.1) { // Current over 110%
                 if (!p.fault) {
                     p.fault = true;
+                    const descTrip = `Pompa ${p.id} Trip/Fault (Arus tinggi: ${p.currentA} A)!`;
                     STATE.alarms.push({
                         time: new Date().toLocaleTimeString(),
                         priority: 'CRITICAL',
-                        description: `Pompa ${p.id} Trip/Fault (Arus tinggi: ${p.currentA} A)!`,
+                        description: descTrip,
                         acknowledged: false
                     });
+                    recordEvent('CRITICAL', descTrip, 'RAISE');
                 }
             } else if (p.fault && p.currentA <= CONFIG.MAX_CURRENT) {
                 // Simulasikan auto-reset fault jika arus kembali normal
                 // Di sistem nyata, fault harus di-reset secara manual atau oleh sistem
                 p.fault = false;
+                recordEvent('CRITICAL', `Pompa ${p.id} Trip/Fault CLEARED`, 'CLEAR');
                 STATE.alarms = STATE.alarms.filter(a => !a.description.includes(`Pompa ${p.id} Trip/Fault`));
             }
         });
@@ -925,7 +1207,320 @@
             return;
         }
         STATE.alarms[index].acknowledged = true;
+        recordEvent(STATE.alarms[index].priority, STATE.alarms[index].description, 'ACK');
         renderAlarms();
+    }
+
+    // --- LOG PAGE RENDERING ---
+    const LOG_PAGE_SIZE = 10;
+    let logCurrentPage = 1;
+
+    function getLogFilters() {
+        const from = document.getElementById('log-date-from').value;
+        const to = document.getElementById('log-date-to').value;
+        const priority = document.getElementById('log-priority').value;
+        const eventType = document.getElementById('log-event').value;
+        const search = document.getElementById('log-search').value.trim().toLowerCase();
+        return { from, to, priority, eventType, search };
+    }
+
+    function applyLogFilters(data) {
+        const { from, to, priority, eventType, search } = getLogFilters();
+        return data.filter(item => {
+            const timeOk = (!from || item.timeISO >= new Date(from).toISOString()) && (!to || item.timeISO <= new Date(new Date(to).setHours(23,59,59,999)).toISOString());
+            const prioOk = (priority === 'ALL' || item.priority === priority);
+            const eventOk = (eventType === 'ALL' || item.event === eventType);
+            const searchOk = (!search || item.description.toLowerCase().includes(search));
+            return timeOk && prioOk && eventOk && searchOk;
+        });
+    }
+
+    function renderAlarmLog() {
+        const body = document.getElementById('alarm-log-body');
+        if (!body) return;
+        const filtered = applyLogFilters(STATE.alarmHistory);
+        const totalPages = Math.max(1, Math.ceil(filtered.length / LOG_PAGE_SIZE));
+        if (logCurrentPage > totalPages) logCurrentPage = totalPages;
+        const start = (logCurrentPage - 1) * LOG_PAGE_SIZE;
+        const pageItems = filtered.slice(start, start + LOG_PAGE_SIZE);
+
+        body.innerHTML = '';
+        if (pageItems.length === 0) {
+            body.innerHTML = '<tr><td colspan="4" class="py-4 text-center text-gray-500">Tidak ada data sesuai filter.</td></ntr>';
+        } else {
+            pageItems.forEach(item => {
+                const priorityClass = item.priority === 'CRITICAL' ? 'bg-red-100 text-red-700 font-bold' : 'bg-orange-100 text-orange-700';
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">${item.time}</td>
+                    <td class="px-4 py-2 whitespace-nowrap text-xs"><span class="px-2 inline-flex text-xs leading-5 rounded-full bg-gray-100 text-gray-700">${item.event}</span></td>
+                    <td class="px-4 py-2 whitespace-nowrap text-sm"><span class="px-2 inline-flex text-xs leading-5 rounded-full ${priorityClass}">${item.priority}</span></td>
+                    <td class="px-4 py-2 text-sm text-gray-600">${item.description}</td>
+                `;
+                body.appendChild(tr);
+            });
+        }
+
+        const info = document.getElementById('log-page-info');
+        if (info) info.textContent = `Halaman ${logCurrentPage} dari ${totalPages} (Total ${filtered.length})`;
+
+        const prev = document.getElementById('log-prev');
+        const next = document.getElementById('log-next');
+        if (prev) prev.disabled = logCurrentPage <= 1;
+        if (next) next.disabled = logCurrentPage >= totalPages;
+    }
+
+    function resetLogFilters() {
+        document.getElementById('log-date-from').value = '';
+        document.getElementById('log-date-to').value = '';
+        document.getElementById('log-priority').value = 'ALL';
+        document.getElementById('log-event').value = 'ALL';
+        document.getElementById('log-search').value = '';
+        logCurrentPage = 1;
+        renderAlarmLog();
+    }
+
+    function exportAlarmLogCSV() {
+        const filtered = applyLogFilters(STATE.alarmHistory);
+        const rows = [['Waktu','Event','Prioritas','Deskripsi']].concat(
+            filtered.map(i => [i.time, i.event, i.priority, i.description.replace(/\n/g, ' ')])
+        );
+        const csv = rows.map(r => r.map(field => `"${String(field).replace(/"/g, '""')}"`).join(',')).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `alarm_log_${new Date().toISOString().slice(0,10)}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+    }
+
+    // --- FLOW LOGIC: filters, render, export ---
+    const FLOW_SAMPLING_INTERVAL_SEC = 5; // sampling setiap 5 detik
+    let lastFlowSampleTime = 0;
+
+    function recordFlowSample(force) {
+        const nowMs = Date.now();
+        if (!force && (nowMs - lastFlowSampleTime) < FLOW_SAMPLING_INTERVAL_SEC * 1000) return;
+        lastFlowSampleTime = nowMs;
+        const now = new Date();
+        STATE.flowHistory.unshift({
+            timeISO: now.toISOString(),
+            time: now.toLocaleString(),
+            debit: parseFloat(STATE.flowmeter.debit.toFixed(2)),
+            totalizer: parseFloat(STATE.flowmeter.totalizer.toFixed(2))
+        });
+        if (STATE.flowHistory.length > 5000) {
+            STATE.flowHistory.length = 5000;
+        }
+    }
+
+    const FLOW_LOG_PAGE_SIZE = 10;
+    let flowCurrentPage = 1;
+
+    function getFlowFilters() {
+        return {
+            from: document.getElementById('flow-date-from')?.value || '',
+            to: document.getElementById('flow-date-to')?.value || '',
+            debitMin: document.getElementById('flow-debit-min')?.value || '',
+            debitMax: document.getElementById('flow-debit-max')?.value || '',
+            totalMin: document.getElementById('flow-total-min')?.value || '',
+            totalMax: document.getElementById('flow-total-max')?.value || '',
+        };
+    }
+
+    function applyFlowFilters(data) {
+        const f = getFlowFilters();
+        return data.filter(item => {
+            const timeOk = (!f.from || item.timeISO >= new Date(f.from).toISOString()) && (!f.to || item.timeISO <= new Date(new Date(f.to).setHours(23,59,59,999)).toISOString());
+            const debitOk = ((f.debitMin === '' || item.debit >= parseFloat(f.debitMin)) && (f.debitMax === '' || item.debit <= parseFloat(f.debitMax)));
+            const totalOk = ((f.totalMin === '' || item.totalizer >= parseFloat(f.totalMin)) && (f.totalMax === '' || item.totalizer <= parseFloat(f.totalMax)));
+            return timeOk && debitOk && totalOk;
+        });
+    }
+
+    function renderFlowLog() {
+        const body = document.getElementById('flow-log-body');
+        if (!body) return;
+        const filtered = applyFlowFilters(STATE.flowHistory);
+        const totalPages = Math.max(1, Math.ceil(filtered.length / FLOW_LOG_PAGE_SIZE));
+        if (flowCurrentPage > totalPages) flowCurrentPage = totalPages;
+        const start = (flowCurrentPage - 1) * FLOW_LOG_PAGE_SIZE;
+        const pageItems = filtered.slice(start, start + FLOW_LOG_PAGE_SIZE);
+        body.innerHTML = '';
+        if (pageItems.length === 0) {
+            body.innerHTML = '<tr><td colspan="3" class="py-4 text-center text-gray-500">Tidak ada data sesuai filter.</td></tr>';
+        } else {
+            pageItems.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class=\"px-4 py-2 whitespace-nowrap text-sm text-gray-900\">${item.time}</td>
+                    <td class=\"px-4 py-2 whitespace-nowrap text-sm text-gray-700\">${item.debit}</td>
+                    <td class=\"px-4 py-2 whitespace-nowrap text-sm text-gray-700\">${item.totalizer}</td>
+                `;
+                body.appendChild(tr);
+            });
+        }
+        const info = document.getElementById('flow-page-info');
+        if (info) info.textContent = `Halaman ${flowCurrentPage} dari ${totalPages} (Total ${filtered.length})`;
+        const prev = document.getElementById('flow-prev');
+        const next = document.getElementById('flow-next');
+        if (prev) prev.disabled = flowCurrentPage <= 1;
+        if (next) next.disabled = flowCurrentPage >= totalPages;
+    }
+
+    function resetFlowFilters() {
+        const el = id => document.getElementById(id);
+        if (el('flow-date-from')) el('flow-date-from').value = '';
+        if (el('flow-date-to')) el('flow-date-to').value = '';
+        if (el('flow-debit-min')) el('flow-debit-min').value = '';
+        if (el('flow-debit-max')) el('flow-debit-max').value = '';
+        if (el('flow-total-min')) el('flow-total-min').value = '';
+        if (el('flow-total-max')) el('flow-total-max').value = '';
+        flowCurrentPage = 1;
+        renderFlowLog();
+    }
+
+    function exportFlowLogCSV() {
+        const filtered = applyFlowFilters(STATE.flowHistory);
+        const rows = [['Waktu','Debit (L/s)','Totalizer (m³)']].concat(
+            filtered.map(i => [i.time, i.debit, i.totalizer])
+        );
+        const csv = rows.map(r => r.map(field => `"${String(field).replace(/"/g, '""')}"`).join(',')).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `flow_log_${new Date().toISOString().slice(0,10)}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+    }
+
+    // --- PUMP HISTORY ---
+    const PUMP_SAMPLING_INTERVAL_SEC = 5;
+    let lastPumpSampleTime = 0;
+
+    function recordPumpSamples(force) {
+        const nowMs = Date.now();
+        if (!force && (nowMs - lastPumpSampleTime) < PUMP_SAMPLING_INTERVAL_SEC * 1000) return;
+        lastPumpSampleTime = nowMs;
+        const now = new Date();
+        STATE.pumps.forEach(p => {
+            const status = p.fault ? 'FAULT' : (p.isRunning ? 'RUNNING' : 'STOP');
+            STATE.pumpHistory.unshift({
+                timeISO: now.toISOString(),
+                time: now.toLocaleString(),
+                pumpId: p.id,
+                status,
+                speedPct: p.speedPct,
+                currentA: parseFloat(p.currentA)
+            });
+        });
+        if (STATE.pumpHistory.length > 5000) {
+            STATE.pumpHistory.length = 5000;
+        }
+        if (!document.getElementById('page-log_pompa').classList.contains('hidden')) {
+            renderPumpLog();
+        }
+    }
+
+    const PUMP_LOG_PAGE_SIZE = 10;
+    let pumpCurrentPage = 1;
+
+    function getPumpFilters() {
+        return {
+            from: document.getElementById('pump-date-from')?.value || '',
+            to: document.getElementById('pump-date-to')?.value || '',
+            pumpId: document.getElementById('pump-id')?.value || 'ALL',
+            status: document.getElementById('pump-status')?.value || 'ALL',
+            speedMin: document.getElementById('pump-speed-min')?.value || '',
+            speedMax: document.getElementById('pump-speed-max')?.value || '',
+            currentMin: document.getElementById('pump-current-min')?.value || '',
+            currentMax: document.getElementById('pump-current-max')?.value || '',
+            search: document.getElementById('pump-search')?.value.trim().toLowerCase() || '',
+        };
+    }
+
+    function applyPumpFilters(data) {
+        const f = getPumpFilters();
+        return data.filter(item => {
+            const timeOk = (!f.from || item.timeISO >= new Date(f.from).toISOString()) && (!f.to || item.timeISO <= new Date(new Date(f.to).setHours(23,59,59,999)).toISOString());
+            const idOk = (f.pumpId === 'ALL' || String(item.pumpId) === f.pumpId);
+            const statusOk = (f.status === 'ALL' || item.status === f.status);
+            const speedOk = ((f.speedMin === '' || item.speedPct >= parseFloat(f.speedMin)) && (f.speedMax === '' || item.speedPct <= parseFloat(f.speedMax)));
+            const currentOk = ((f.currentMin === '' || item.currentA >= parseFloat(f.currentMin)) && (f.currentMax === '' || item.currentA <= parseFloat(f.currentMax)));
+            const searchOk = (!f.search || (`Pompa ${item.pumpId} ${item.status}`).toLowerCase().includes(f.search));
+            return timeOk && idOk && statusOk && speedOk && currentOk && searchOk;
+        });
+    }
+
+    function renderPumpLog() {
+        const body = document.getElementById('pump-log-body');
+        if (!body) return;
+        const filtered = applyPumpFilters(STATE.pumpHistory);
+        const totalPages = Math.max(1, Math.ceil(filtered.length / PUMP_LOG_PAGE_SIZE));
+        if (pumpCurrentPage > totalPages) pumpCurrentPage = totalPages;
+        const start = (pumpCurrentPage - 1) * PUMP_LOG_PAGE_SIZE;
+        const pageItems = filtered.slice(start, start + PUMP_LOG_PAGE_SIZE);
+        body.innerHTML = '';
+        if (pageItems.length === 0) {
+            body.innerHTML = '<tr><td colspan="5" class="py-4 text-center text-gray-500">Tidak ada data sesuai filter.</td></tr>';
+        } else {
+            pageItems.forEach(item => {
+                const statusBadge = item.status === 'FAULT' ? 'bg-red-100 text-red-700' : (item.status === 'RUNNING' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700');
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class=\"px-4 py-2 whitespace-nowrap text-sm text-gray-900\">${item.time}</td>
+                    <td class=\"px-4 py-2 whitespace-nowrap text-sm text-gray-700\">Pompa ${item.pumpId}</td>
+                    <td class=\"px-4 py-2 whitespace-nowrap text-xs\"><span class=\"px-2 inline-flex text-xs leading-5 rounded-full ${statusBadge}\">${item.status}</span></td>
+                    <td class=\"px-4 py-2 whitespace-nowrap text-sm text-gray-700\">${item.speedPct}</td>
+                    <td class=\"px-4 py-2 whitespace-nowrap text-sm text-gray-700\">${item.currentA.toFixed(1)}</td>
+                `;
+                body.appendChild(tr);
+            });
+        }
+        const info = document.getElementById('pump-page-info');
+        if (info) info.textContent = `Halaman ${pumpCurrentPage} dari ${totalPages} (Total ${filtered.length})`;
+        const prev = document.getElementById('pump-prev');
+        const next = document.getElementById('pump-next');
+        if (prev) prev.disabled = pumpCurrentPage <= 1;
+        if (next) next.disabled = pumpCurrentPage >= totalPages;
+    }
+
+    function resetPumpFilters() {
+        const el = id => document.getElementById(id);
+        if (el('pump-date-from')) el('pump-date-from').value = '';
+        if (el('pump-date-to')) el('pump-date-to').value = '';
+        if (el('pump-id')) el('pump-id').value = 'ALL';
+        if (el('pump-status')) el('pump-status').value = 'ALL';
+        if (el('pump-speed-min')) el('pump-speed-min').value = '';
+        if (el('pump-speed-max')) el('pump-speed-max').value = '';
+        if (el('pump-current-min')) el('pump-current-min').value = '';
+        if (el('pump-current-max')) el('pump-current-max').value = '';
+        if (el('pump-search')) el('pump-search').value = '';
+        pumpCurrentPage = 1;
+        renderPumpLog();
+    }
+
+    function exportPumpLogCSV() {
+        const filtered = applyPumpFilters(STATE.pumpHistory);
+        const rows = [['Waktu','Pompa','Status','Speed (%)','Arus (A)']].concat(
+            filtered.map(i => [i.time, i.pumpId, i.status, i.speedPct, i.currentA.toFixed(1)])
+        );
+        const csv = rows.map(r => r.map(field => `"${String(field).replace(/"/g, '""')}"`).join(',')).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `pump_log_${new Date().toISOString().slice(0,10)}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
     }
 
 
@@ -938,6 +1533,46 @@
         // Start Lucide Icon rendering
         lucide.createIcons();
 
+        // Hook up Alarm Log page controls
+        const logApply = document.getElementById('log-apply');
+        const logResetBtn = document.getElementById('log-reset');
+        const logExportBtn = document.getElementById('log-export');
+        const logPrev = document.getElementById('log-prev');
+        const logNext = document.getElementById('log-next');
+        if (logApply) logApply.onclick = () => { logCurrentPage = 1; renderAlarmLog(); };
+        if (logResetBtn) logResetBtn.onclick = () => resetLogFilters();
+        if (logExportBtn) logExportBtn.onclick = () => exportAlarmLogCSV();
+        if (logPrev) logPrev.onclick = () => { if (logCurrentPage > 1) { logCurrentPage--; renderAlarmLog(); } };
+        if (logNext) logNext.onclick = () => { logCurrentPage++; renderAlarmLog(); };
+
+        // Hook up Flow Log page controls
+        const flowApply = document.getElementById('flow-apply');
+        const flowResetBtn = document.getElementById('flow-reset');
+        const flowExportBtn = document.getElementById('flow-export');
+        const flowPrev = document.getElementById('flow-prev');
+        const flowNext = document.getElementById('flow-next');
+        if (flowApply) flowApply.onclick = () => { flowCurrentPage = 1; renderFlowLog(); };
+        if (flowResetBtn) flowResetBtn.onclick = () => resetFlowFilters();
+        if (flowExportBtn) flowExportBtn.onclick = () => exportFlowLogCSV();
+        if (flowPrev) flowPrev.onclick = () => { if (flowCurrentPage > 1) { flowCurrentPage--; renderFlowLog(); } };
+        if (flowNext) flowNext.onclick = () => { flowCurrentPage++; renderFlowLog(); };
+
+        // Hook up Pump Log page controls
+        const pumpApply = document.getElementById('pump-apply');
+        const pumpResetBtn = document.getElementById('pump-reset');
+        const pumpExportBtn = document.getElementById('pump-export');
+        const pumpPrev = document.getElementById('pump-prev');
+        const pumpNext = document.getElementById('pump-next');
+        if (pumpApply) pumpApply.onclick = () => { pumpCurrentPage = 1; renderPumpLog(); };
+        if (pumpResetBtn) pumpResetBtn.onclick = () => resetPumpFilters();
+        if (pumpExportBtn) pumpExportBtn.onclick = () => exportPumpLogCSV();
+        if (pumpPrev) pumpPrev.onclick = () => { if (pumpCurrentPage > 1) { pumpCurrentPage--; renderPumpLog(); } };
+        if (pumpNext) pumpNext.onclick = () => { pumpCurrentPage++; renderPumpLog(); };
+
+        // Ensure visualization slider is positioned correctly on load and resize
+        updateVisualizationSlider();
+        window.addEventListener('resize', updateVisualizationSlider);
+
         // Start the data simulation loop
         simulateData(); // Run once immediately
         window.dataInterval = setInterval(simulateData, 1000); // Run every second
@@ -945,6 +1580,37 @@
 
     // Check auth on load
     window.onload = checkAuth;
+
+    // --- VISUALIZATION SLIDER ---
+    let vizCurrentIndex = 0;
+    function updateVisualizationSlider() {
+        const slider = document.getElementById('visualization-slider');
+        if (!slider) return;
+        const container = slider.parentElement;
+        const width = container ? container.clientWidth : slider.clientWidth;
+        slider.style.transform = `translateX(-${vizCurrentIndex * width}px)`;
+        for (let i = 0; i < 2; i++) {
+            const dot = document.getElementById(`viz-dot-${i}`);
+            if (dot) {
+                dot.classList.toggle('bg-blue-500', i === vizCurrentIndex);
+                dot.classList.toggle('bg-gray-300', i !== vizCurrentIndex);
+            }
+        }
+    }
+    function showVisualizationSlide(index) {
+        vizCurrentIndex = Math.max(0, Math.min(1, index));
+        updateVisualizationSlider();
+    }
+    function prevVisualizationSlide() {
+        vizCurrentIndex = vizCurrentIndex === 0 ? 1 : 0;
+        updateVisualizationSlider();
+    }
+    function nextVisualizationSlide() {
+        vizCurrentIndex = vizCurrentIndex === 1 ? 0 : 1;
+        updateVisualizationSlider();
+    }
+
+    // --- INITIALIZATION ---
 
 </script>
 </body>
