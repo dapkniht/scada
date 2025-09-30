@@ -132,10 +132,22 @@
                 <div class="lg:col-span-2 space-y-6">
                     <!-- VISUALISASI INTAKE -->
                     <div class="scada-container">
-                        <h2 class="text-xl font-bold text-gray-800 mb-4">Water Intake Visualization (P&ID)</h2>
-                        <div id="intake-schematic" class="h-96 w-full relative">
-                            <!-- SVG Skematik -->
-                            <svg class="w-full h-full" viewBox="0 0 800 350" xmlns="http://www.w3.org/2000/svg">
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 id="viz-title" class="text-xl font-bold text-gray-800">Water Intake Visualization (P&ID)</h2>
+                            <div class="flex items-center gap-2 text-sm">
+                                <button id="viz-prev" class="px-2 py-1 border rounded hover:bg-gray-50 flex items-center" title="Sebelumnya">
+                                    <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                                </button>
+                                <span id="viz-indicator" class="text-gray-600">1 / 2</span>
+                                <button id="viz-next" class="px-2 py-1 border rounded hover:bg-gray-50 flex items-center" title="Berikutnya">
+                                    <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="h-96 w-full relative overflow-hidden">
+                            <!-- Slide 1: SVG Skematik -->
+                            <div id="slide-pid" class="absolute inset-0">
+                                <svg id="intake-schematic" class="w-full h-full" viewBox="0 0 800 350" xmlns="http://www.w3.org/2000/svg">
                                 <!-- Sumber Air (Kolam/Sungai) -->
                                 <rect x="50" y="280" width="150" height="50" fill="#a0c4ff" stroke="#4a90e2" stroke-width="2"/>
                                 <text x="125" y="310" class="text-sm font-semibold fill-blue-900" text-anchor="middle">Sumber Air</text>
@@ -176,7 +188,12 @@
                                 <!-- Pipa ke WTP -->
                                 <path d="M 600 150 H 750" fill="none" stroke="#4a90e2" stroke-width="7"/>
                                 <text x="750" y="145" class="text-sm font-semibold fill-green-700" text-anchor="end">Menuju WTP</text>
-                            </svg>
+                                </svg>
+                            </div>
+                            <!-- Slide 2: Illustration Image -->
+                            <div id="slide-illustration" class="absolute inset-0 hidden">
+                                <img src="illustration.png" alt="Water Intake Illustration" class="w-full h-full object-contain select-none" draggable="false" />
+                            </div>
                         </div>
                     </div>
                     
@@ -631,8 +648,8 @@
 </div>
 
 <!-- LOGIN PAGE -->
-<div id="login-page" class="flex items-center justify-center min-h-screen bg-gray-100">
-    <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md">
+<div id="login-page" class="flex items-center justify-center min-h-screen bg-gray-100" style="background-image:url('illustration.png'); background-size:cover; background-position:center;">
+    <div class="bg-white/80 backdrop-blur-sm border border-white/40 p-8 rounded-xl shadow-2xl w-full max-w-md">
         <h2 class="text-3xl font-bold text-center text-blue-700 mb-6">Login SCADA KBP-Arsindo</h2>
         <div class="mb-4">
             <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
@@ -1543,6 +1560,32 @@
         
         // Start Lucide Icon rendering
         lucide.createIcons();
+
+        // Visualization slider controls
+        const slidePID = document.getElementById('slide-pid');
+        const slideImg = document.getElementById('slide-illustration');
+        const indicator = document.getElementById('viz-indicator');
+        const vizTitle = document.getElementById('viz-title');
+        let vizIndex = 0; // 0: P&ID, 1: Illustration
+        function updateViz() {
+            if (!slidePID || !slideImg || !indicator || !vizTitle) return;
+            if (vizIndex === 0) {
+                slidePID.classList.remove('hidden');
+                slideImg.classList.add('hidden');
+                indicator.textContent = '1 / 2';
+                vizTitle.textContent = 'Water Intake Visualization (P&ID)';
+            } else {
+                slidePID.classList.add('hidden');
+                slideImg.classList.remove('hidden');
+                indicator.textContent = '2 / 2';
+                vizTitle.textContent = '3D Water Intake Visualization (P&ID)';
+            }
+        }
+        const prevBtn = document.getElementById('viz-prev');
+        const nextBtn = document.getElementById('viz-next');
+        if (prevBtn) prevBtn.onclick = () => { vizIndex = (vizIndex + 1) % 2; updateViz(); };
+        if (nextBtn) nextBtn.onclick = () => { vizIndex = (vizIndex + 1) % 2; updateViz(); };
+        updateViz();
 
         // Hook up Alarm Log page controls
         const logApply = document.getElementById('log-apply');
