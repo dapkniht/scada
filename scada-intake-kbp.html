@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KBP-Arsindo Water Intake SCADA</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Lucide Icons for aesthetic icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Mengatur font Inter */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f9fc;
+        }
+        /* Style untuk skematik, agar terlihat seperti panel kontrol */
+        .scada-container {
+            position: relative;
+            background-color: #ffffff;
+            border: 1px solid #e0e7ff;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+        }
+        /* Warna untuk indikator status */
+        .status-running { animation: pulse-green 1s infinite; }
+        .status-trip { animation: pulse-red 0.5s infinite; }
+        @keyframes pulse-green {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+            50% { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+        }
+        @keyframes pulse-red {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            50% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+
+<!-- MAIN APPLICATION CONTAINER -->
+<div id="app" class="hidden">
+    <!-- HEADER -->
+    <header class="bg-white shadow-md p-4 flex justify-between items-center z-10 sticky top-0">
+        <div class="flex items-center">
+            <h1 class="text-2xl font-extrabold text-blue-800">SCADA KBP-ARSINDO</h1>
+            <span class="ml-4 px-3 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">Water Intake System</span>
+        </div>
+        <div class="flex items-center space-x-4">
+            <!-- Health Status -->
+            <div id="connection-status" class="flex items-center text-sm font-medium">
+                <div class="w-2 h-2 rounded-full bg-green-500 mr-2 status-running"></div>
+                <span class="text-gray-700">Gateway: ONLINE</span>
+            </div>
+            <div id="user-info" class="text-sm font-semibold text-gray-700 bg-gray-100 px-3 py-1 rounded-full"></div>
+            <button onclick="logout()" class="bg-red-500 hover:bg-red-600 text-white font-semibold py-1 px-3 rounded-md transition duration-300 flex items-center">
+                <i data-lucide="log-out" class="w-4 h-4 mr-1"></i> Log Out
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT AREA -->
+    <div class="flex min-h-[calc(100vh-64px)]">
+        <!-- SIDEBAR NAVIGATION -->
+        <nav class="w-64 bg-gray-800 text-white p-4 hidden lg:block">
+            <div class="space-y-2">
+                <a href="#" onclick="showPage('dashboard')" id="nav-dashboard" class="nav-item flex items-center p-3 rounded-lg hover:bg-blue-600 bg-blue-700 font-semibold transition duration-200">
+                    <i data-lucide="layout-dashboard" class="w-5 h-5 mr-3"></i> Dashboard Intake
+                </a>
+                <a href="#" onclick="showPage('log_pompa')" id="nav-log_pompa" class="nav-item flex items-center p-3 rounded-lg hover:bg-gray-700 transition duration-200">
+                    <i data-lucide="history" class="w-5 h-5 mr-3"></i> Log History Pompa
+                </a>
+                <a href="#" onclick="showPage('log_flow')" id="nav-log_flow" class="nav-item flex items-center p-3 rounded-lg hover:bg-gray-700 transition duration-200">
+                    <i data-lucide="gauge" class="w-5 h-5 mr-3"></i> Log Totalizer Flow
+                </a>
+                <a href="#" onclick="showPage('log_alarm')" id="nav-log_alarm" class="nav-item flex items-center p-3 rounded-lg hover:bg-gray-700 transition duration-200">
+                    <i data-lucide="bell" class="w-5 h-5 mr-3"></i> Log Alarm & Events
+                </a>
+                <!-- MASTER SETTINGS - Hanya terlihat untuk ADMIN -->
+                <a href="#" onclick="showPage('master_settings')" id="nav-master_settings" class="nav-item flex items-center p-3 rounded-lg hover:bg-gray-700 transition duration-200">
+                    <i data-lucide="settings" class="w-5 h-5 mr-3"></i> Master Settings
+                </a>
+            </div>
+        </nav>
+
+        <!-- PAGE CONTENT CONTAINER -->
+        <main class="flex-1 p-6 overflow-y-auto">
+            <!-- Mobile Menu Toggler (Visible on small screens) -->
+            <div class="lg:hidden mb-4">
+                <label for="mobile-menu" class="sr-only">Pilih Halaman</label>
+                <select id="mobile-menu" onchange="showPage(this.value)" class="w-full p-3 border border-gray-300 rounded-lg text-gray-700 focus:ring-blue-500 focus:border-blue-500">
+                    <option value="dashboard">Dashboard Intake</option>
+                    <option value="log_pompa">Log History Pompa</option>
+                    <option value="log_flow">Log Totalizer Flow</option>
+                    <option value="log_alarm">Log Alarm & Events</option>
+                    <option value="master_settings">Master Settings</option>
+                </select>
+            </div>
+
+            <!-- Dashboard Page -->
+            <div id="page-dashboard" class="page-content grid lg:grid-cols-3 gap-6">
+                <!-- COLUMN 1 & 2 (Visualization & Monitoring) -->
+                <div class="lg:col-span-2 space-y-6">
+                    <!-- VISUALISASI INTAKE -->
+                    <div class="scada-container">
+                        <h2 class="text-xl font-bold text-gray-800 mb-4">Water Intake Visualization (P&ID)</h2>
+                        <div id="intake-schematic" class="h-96 w-full relative">
+                            <!-- SVG Skematik -->
+                            <svg class="w-full h-full" viewBox="0 0 800 350" xmlns="http://www.w3.org/2000/svg">
+                                <!-- Sumber Air (Kolam/Sungai) -->
+                                <rect x="50" y="280" width="150" height="50" fill="#a0c4ff" stroke="#4a90e2" stroke-width="2"/>
+                                <text x="125" y="310" class="text-sm font-semibold fill-blue-900" text-anchor="middle">Sumber Air</text>
+                                
+                                <!-- Pompa (3 Unit) -->
+                                <g id="pump-1" transform="translate(200, 230)" class="transition-all duration-300">
+                                    <circle cx="0" cy="0" r="20" fill="#fefefe" stroke="#007bff" stroke-width="2"/>
+                                    <text x="0" y="5" text-anchor="middle" class="text-xs font-bold fill-gray-800">P1</text>
+                                </g>
+                                <g id="pump-2" transform="translate(200, 150)" class="transition-all duration-300">
+                                    <circle cx="0" cy="0" r="20" fill="#fefefe" stroke="#007bff" stroke-width="2"/>
+                                    <text x="0" y="5" text-anchor="middle" class="text-xs font-bold fill-gray-800">P2</text>
+                                </g>
+                                <g id="pump-3" transform="translate(200, 70)" class="transition-all duration-300">
+                                    <circle cx="0" cy="0" r="20" fill="#fefefe" stroke="#007bff" stroke-width="2"/>
+                                    <text x="0" y="5" text-anchor="middle" class="text-xs font-bold fill-gray-800">P3</text>
+                                </g>
+
+                                <!-- Pipa Intake ke Header -->
+                                <path id="pipe-1" d="M 220 230 H 450" fill="none" stroke="#6c757d" stroke-width="5" class="pipe-flow"/>
+                                <path id="pipe-2" d="M 220 150 H 450" fill="none" stroke="#6c757d" stroke-width="5" class="pipe-flow"/>
+                                <path id="pipe-3" d="M 220 70 H 450" fill="none" stroke="#6c757d" stroke-width="5" class="pipe-flow"/>
+
+                                <!-- Header Pipa Gabungan -->
+                                <rect x="445" y="50" width="10" height="200" fill="#6c757d"/>
+
+                                <!-- Pipa ke Flowmeter -->
+                                <path id="pipe-main" d="M 455 150 H 550" fill="none" stroke="#4a90e2" stroke-width="7" class="pipe-flow"/>
+
+                                <!-- Flowmeter -->
+                                <g transform="translate(580, 150)">
+                                    <rect x="-20" y="-30" width="40" height="60" fill="#9ca3af" stroke="#4b5563" stroke-width="2" rx="5"/>
+                                    <circle cx="0" cy="0" r="10" fill="#3b82f6"/>
+                                    <text x="0" y="40" text-anchor="middle" class="text-sm font-bold fill-gray-800">Flowmeter</text>
+                                    <text id="flow-display-schematic" x="0" y="-10" text-anchor="middle" class="text-md font-bold fill-white">0 L/s</text>
+                                </g>
+                                
+                                <!-- Pipa ke WTP -->
+                                <path d="M 600 150 H 750" fill="none" stroke="#4a90e2" stroke-width="7"/>
+                                <text x="750" y="145" class="text-sm font-semibold fill-green-700" text-anchor="end">Menuju WTP</text>
+                            </svg>
+                        </div>
+                    </div>
+                    
+                    <!-- MONITORING CARDS -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="bg-blue-600 text-white p-4 rounded-xl shadow-lg flex flex-col items-center">
+                            <i data-lucide="zap" class="w-6 h-6 mb-2"></i>
+                            <p class="text-lg font-medium">Total Debit</p>
+                            <p id="monitor-debit" class="text-3xl font-bold">0 L/s</p>
+                        </div>
+                        <div class="bg-white text-gray-700 p-4 rounded-xl shadow-lg border-2 border-green-500 flex flex-col items-center">
+                            <i data-lucide="gauge" class="w-6 h-6 mb-2 text-green-600"></i>
+                            <p class="text-lg font-medium">Level Air</p>
+                            <p id="monitor-level" class="text-3xl font-bold">2.5 m</p>
+                        </div>
+                        <div class="bg-white text-gray-700 p-4 rounded-xl shadow-lg border flex flex-col items-center">
+                            <i data-lucide="plug-zap" class="w-6 h-6 mb-2 text-yellow-600"></i>
+                            <p class="text-lg font-medium">Totalizer</p>
+                            <p id="monitor-totalizer" class="text-3xl font-bold">0 m³</p>
+                        </div>
+                        <div class="bg-white text-gray-700 p-4 rounded-xl shadow-lg border flex flex-col items-center">
+                            <i data-lucide="bolt" class="w-6 h-6 mb-2 text-red-600"></i>
+                            <p class="text-lg font-medium">Pompa Aktif</p>
+                            <p id="monitor-active-pumps" class="text-3xl font-bold">0 / 3</p>
+                        </div>
+                    </div>
+
+                    <!-- ACTIVE ALARMS & EVENTS -->
+                    <div class="scada-container">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-xl font-bold text-gray-800">Alarms & Events Aktif</h2>
+                            <span id="alarm-count" class="px-3 py-1 text-sm font-bold rounded-full bg-green-200 text-green-800">0 Aktif</span>
+                        </div>
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Waktu</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Prioritas</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Deskripsi</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="alarm-list" class="bg-white divide-y divide-gray-200">
+                                <!-- Alarm rows will be inserted here -->
+                                <tr><td colspan="5" class="py-4 text-center text-gray-500">Tidak ada alarm aktif saat ini.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- COLUMN 3 (Control Panel & Detail Monitoring) -->
+                <div class="lg:col-span-1 space-y-6">
+                    <!-- CONTROL PANEL -->
+                    <div class="bg-white p-6 rounded-xl shadow-lg border border-blue-200">
+                        <h2 class="text-xl font-bold text-blue-700 mb-4">Control Panel</h2>
+                        
+                        <!-- Mode Selector -->
+                        <div id="control-mode-panel" class="mb-4">
+                            <p class="text-sm font-medium text-gray-600 mb-2">Mode Operasi Saat Ini:</p>
+                            <div class="flex rounded-lg border border-gray-300 divide-x divide-gray-300 text-sm font-semibold">
+                                <button id="mode-auto" onclick="setMode('AUTO')" class="flex-1 p-2 rounded-l-lg transition duration-200"></button>
+                                <button id="mode-remote" onclick="setMode('REMOTE')" class="flex-1 p-2 transition duration-200"></button>
+                                <button id="mode-manual" onclick="setMode('MANUAL')" class="flex-1 p-2 rounded-r-lg transition duration-200"></button>
+                            </div>
+                        </div>
+
+                        <!-- AUTO/REMOTE CONTROL -->
+                        <div id="auto-control-section" class="border-t pt-4">
+                            <h3 class="font-bold text-lg mb-2">Kontrol Sistem (Mode <span id="current-mode-display">AUTO</span>)</h3>
+                            <div class="space-y-3">
+                                <label for="target-debit" class="block text-sm font-medium text-gray-700">Target Debit (Setpoint L/s)</label>
+                                <input type="number" id="target-debit" min="0" max="1000" step="5" class="w-full p-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500" value="150">
+                                <button onclick="setSystemSetpoint()" id="setpoint-btn" class="w-full py-2 px-4 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 transition duration-300">
+                                    APLIKASIKAN SETPOINT
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- MANUAL PUMP CONTROL (Hanya terlihat di mode MANUAL) -->
+                        <div id="manual-control-section" class="border-t pt-4 mt-4 hidden">
+                            <h3 class="font-bold text-lg text-red-600 mb-3 flex items-center">
+                                <i data-lucide="lock" class="w-5 h-5 mr-2"></i> Kontrol Pompa Manual
+                            </h3>
+                            <p id="manual-control-info" class="text-sm text-gray-500 mb-3 italic">Fitur ini hanya dapat diakses oleh Admin.</p>
+                            <!-- Pompa 1 -->
+                            <div class="p-3 bg-gray-50 rounded-lg mb-2 flex items-center justify-between">
+                                <span class="font-semibold">Pompa 1</span>
+                                <div class="flex items-center space-x-2">
+                                    <button onclick="togglePump(1)" id="pump-1-toggle" class="px-3 py-1 text-sm rounded-lg font-medium bg-gray-300"></button>
+                                    <input type="range" min="0" max="100" value="0" class="w-24 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer range-lg" onchange="setManualSpeed(1, this.value)">
+                                    <span id="pump-1-manual-speed" class="text-sm font-bold w-10 text-right">0%</span>
+                                </div>
+                            </div>
+                            <!-- Pompa 2 -->
+                            <div class="p-3 bg-gray-50 rounded-lg mb-2 flex items-center justify-between">
+                                <span class="font-semibold">Pompa 2</span>
+                                <div class="flex items-center space-x-2">
+                                    <button onclick="togglePump(2)" id="pump-2-toggle" class="px-3 py-1 text-sm rounded-lg font-medium bg-gray-300"></button>
+                                    <input type="range" min="0" max="100" value="0" class="w-24 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer range-lg" onchange="setManualSpeed(2, this.value)">
+                                    <span id="pump-2-manual-speed" class="text-sm font-bold w-10 text-right">0%</span>
+                                </div>
+                            </div>
+                             <!-- Pompa 3 -->
+                            <div class="p-3 bg-gray-50 rounded-lg flex items-center justify-between">
+                                <span class="font-semibold">Pompa 3</span>
+                                <div class="flex items-center space-x-2">
+                                    <button onclick="togglePump(3)" id="pump-3-toggle" class="px-3 py-1 text-sm rounded-lg font-medium bg-gray-300"></button>
+                                    <input type="range" min="0" max="100" value="0" class="w-24 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer range-lg" onchange="setManualSpeed(3, this.value)">
+                                    <span id="pump-3-manual-speed" class="text-sm font-bold w-10 text-right">0%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- DETAIL MONITORING PER POMPA -->
+                    <div class="bg-white p-6 rounded-xl shadow-lg border">
+                        <h2 class="text-xl font-bold text-gray-800 mb-4">Detail VFD Monitoring</h2>
+                        <div id="pump-details" class="space-y-4">
+                            <!-- Detail Pompa 1 -->
+                            <div class="p-3 rounded-lg border" id="detail-p1">
+                                <h4 class="font-bold text-blue-600">Pompa 1</h4>
+                                <div class="flex justify-between text-sm py-1"><span class="text-gray-600">Speed:</span><span id="p1-speed" class="font-semibold">0% (0 Hz)</span></div>
+                                <div class="flex justify-between text-sm py-1"><span class="text-gray-600">Arus (A):</span><span id="p1-current" class="font-semibold">0.0 A</span></div>
+                                <div class="flex justify-between text-sm py-1"><span class="text-gray-600">Tegangan (V):</span><span id="p1-voltage" class="font-semibold">380 V</span></div>
+                                <div class="flex justify-between text-sm py-1"><span class="text-gray-600">Status:</span><span id="p1-status" class="font-semibold text-gray-500">STOP</span></div>
+                            </div>
+                            <!-- Detail Pompa 2 -->
+                            <div class="p-3 rounded-lg border" id="detail-p2">
+                                <h4 class="font-bold text-blue-600">Pompa 2</h4>
+                                <div class="flex justify-between text-sm py-1"><span class="text-gray-600">Speed:</span><span id="p2-speed" class="font-semibold">0% (0 Hz)</span></div>
+                                <div class="flex justify-between text-sm py-1"><span class="text-gray-600">Arus (A):</span><span id="p2-current" class="font-semibold">0.0 A</span></div>
+                                <div class="flex justify-between text-sm py-1"><span class="text-gray-600">Tegangan (V):</span><span id="p2-voltage" class="font-semibold">380 V</span></div>
+                                <div class="flex justify-between text-sm py-1"><span class="text-gray-600">Status:</span><span id="p2-status" class="font-semibold text-gray-500">STOP</span></div>
+                            </div>
+                            <!-- Detail Pompa 3 -->
+                            <div class="p-3 rounded-lg border" id="detail-p3">
+                                <h4 class="font-bold text-blue-600">Pompa 3</h4>
+                                <div class="flex justify-between text-sm py-1"><span class="text-gray-600">Speed:</span><span id="p3-speed" class="font-semibold">0% (0 Hz)</span></div>
+                                <div class="flex justify-between text-sm py-1"><span class="text-gray-600">Arus (A):</span><span id="p3-current" class="font-semibold">0.0 A</span></div>
+                                <div class="flex justify-between text-sm py-1"><span class="text-gray-600">Tegangan (V):</span><span id="p3-voltage" class="font-semibold">380 V</span></div>
+                                <div class="flex justify-between text-sm py-1"><span class="text-gray-600">Status:</span><span id="p3-status" class="font-semibold text-gray-500">STOP</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Master Settings Page -->
+            <div id="page-master_settings" class="page-content hidden">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                    <i data-lucide="lock" class="w-6 h-6 mr-2 text-red-600"></i> Master Settings (Algoritma & Threshold)
+                </h2>
+                <div id="settings-content" class="space-y-6">
+                    <!-- MASTER STAGING TABLE -->
+                    <div class="bg-white p-6 rounded-xl shadow-lg mb-6">
+                        <h3 class="text-xl font-bold text-blue-700 mb-4">Master Staging Algoritma Pompa (Kontrol Debit)</h3>
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Target Debit (L/s)</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Max Speed Pompa Tunggal (%)</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Max Sum Active Pump</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="staging-table-body" class="bg-white divide-y divide-gray-200">
+                                <!-- Data Mock/Simulasi -->
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">100</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">30%</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">1</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"><a href="#" class="text-indigo-600 hover:text-indigo-900">Edit</a></td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">200</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">40%</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">2</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"><a href="#" class="text-indigo-600 hover:text-indigo-900">Edit</a></td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">400</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">60%</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">3</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"><a href="#" class="text-indigo-600 hover:text-indigo-900">Edit</a></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <button class="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition duration-300">Tambahkan Threshold Baru</button>
+                    </div>
+
+                    <!-- ALARM THRESHOLDS -->
+                    <div class="bg-white p-6 rounded-xl shadow-lg">
+                        <h3 class="text-xl font-bold text-red-600 mb-4">Master Alarm Thresholds (Protection)</h3>
+                        <div class="grid md:grid-cols-3 gap-4">
+                            <div class="p-4 border rounded-lg">
+                                <h4 class="font-semibold">Level Air Kritis</h4>
+                                <p class="text-sm text-gray-600">Level Min: <span class="font-bold text-red-500">1.5 m</span></p>
+                                <p class="text-sm text-gray-600">Level Maks: <span class="font-bold text-red-500">4.0 m</span></p>
+                            </div>
+                            <div class="p-4 border rounded-lg">
+                                <h4 class="font-semibold">Arus Pompa Drift</h4>
+                                <p class="text-sm text-gray-600">Arus Maks Normal: <span class="font-bold text-orange-500">12.0 A</span></p>
+                            </div>
+                            <div class="p-4 border rounded-lg">
+                                <h4 class="font-semibold">Saringan (Filter)</h4>
+                                <p class="text-sm text-gray-600">Interval Bersih: <span class="font-bold text-green-500">7 Hari</span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Placeholder for Log History and Log Alarm pages -->
+            <div id="page-log_pompa" class="page-content hidden">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">Log History Penggunaan Pompa</h2>
+                <div class="bg-white p-6 rounded-xl shadow-lg"><p class="text-gray-600">Tabel riwayat penggunaan dan parameter pompa di sini. (Fitur Export CSV/XLS).</p></div>
+            </div>
+            <div id="page-log_flow" class="page-content hidden">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">Log History Totalizer Flowmeter</h2>
+                <div class="bg-white p-6 rounded-xl shadow-lg"><p class="text-gray-600">Tabel riwayat totalizer flowmeter di sini. (Fitur Export CSV/XLS).</p></div>
+            </div>
+            <div id="page-log_alarm" class="page-content hidden">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">Log Alarm & Events (Lengkap)</h2>
+                <div class="bg-white p-6 rounded-xl shadow-lg"><p class="text-gray-600">Daftar lengkap semua alarm, termasuk yang sudah di-Acknowledge. (Fitur Filter, Export CSV).</p></div>
+            </div>
+
+            <!-- Simple Modal for Alert/Warning -->
+            <div id="custom-alert-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 items-center justify-center">
+                <div class="bg-white p-6 rounded-xl shadow-2xl max-w-sm w-full">
+                    <h3 id="modal-title" class="text-xl font-bold text-red-600 mb-3">Peringatan Sistem</h3>
+                    <p id="modal-message" class="text-gray-700 mb-4"></p>
+                    <button onclick="hideAlertModal()" class="w-full py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600">Tutup</button>
+                </div>
+            </div>
+
+        </main>
+    </div>
+</div>
+
+<!-- LOGIN PAGE -->
+<div id="login-page" class="flex items-center justify-center min-h-screen bg-gray-100">
+    <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md">
+        <h2 class="text-3xl font-bold text-center text-blue-700 mb-6">Login SCADA KBP-Arsindo</h2>
+        <div class="mb-4">
+            <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
+            <input type="text" id="username" class="mt-1 w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="admin, operator, atau viewer">
+        </div>
+        <div class="mb-6">
+            <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+            <input type="password" id="password" class="mt-1 w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="123">
+        </div>
+        <button onclick="login()" class="w-full py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition duration-300">
+            Login
+        </button>
+        <p class="text-center text-sm text-gray-500 mt-4">Demo: Admin/123, Operator/123, atau Viewer/123</p>
+    </div>
+</div>
+
+<script>
+    // --- SCADA SYSTEM STATE & CONFIGURATION ---
+    const CONFIG = {
+        MAX_SPEED_HZ: 50,
+        MAX_CURRENT: 12.0,
+        MAX_DEBIT: 450, // L/s
+        ALARM_THRESHOLD_LEVEL: 1.5, // meter
+        ALARM_THRESHOLD_DEBIT: 420, // L/s
+    };
+    
+    let STATE = {
+        user: null, // 'ADMIN', 'OPERATOR', 'VIEWER'
+        currentMode: 'AUTO',
+        systemSetpoint: 150, // L/s Target Debit
+        pumps: [
+            { id: 1, isRunning: false, speedPct: 0, currentA: 0.0, fault: false },
+            { id: 2, isRunning: false, speedPct: 0, currentA: 0.0, fault: false },
+            { id: 3, isRunning: false, speedPct: 0, currentA: 0.0, fault: false },
+        ],
+        flowmeter: { debit: 0, totalizer: 12345.67 },
+        level: 3.5, // meter
+        alarms: [],
+    };
+
+    // --- UTILITIES & MOCK API ---
+
+    // Simple Custom Alert Modal
+    function showAlertModal(title, message) {
+        document.getElementById('modal-title').textContent = title;
+        document.getElementById('modal-message').textContent = message;
+        document.getElementById('custom-alert-modal').classList.remove('hidden');
+        document.getElementById('custom-alert-modal').classList.add('flex');
+    }
+    function hideAlertModal() {
+        document.getElementById('custom-alert-modal').classList.add('hidden');
+        document.getElementById('custom-alert-modal').classList.remove('flex');
+    }
+
+    // Role-Based Access Control (RBAC) Checker
+    function hasPermission(minRole) {
+        if (!STATE.user) return false;
+        const roles = { 'VIEWER': 1, 'OPERATOR': 2, 'ADMIN': 3 };
+        
+        // Cek jika role user saat ini memiliki level akses yang sama atau lebih tinggi dari yang diminta
+        return roles[STATE.user] >= roles[minRole];
+    }
+
+    // --- AUTHENTICATION MOCK ---
+
+    function login() {
+        const username = document.getElementById('username').value.toLowerCase();
+        const password = document.getElementById('password').value;
+
+        if (password !== '123') {
+            showAlertModal('Gagal Login', 'Password salah.');
+            return;
+        }
+
+        if (username === 'admin') {
+            STATE.user = 'ADMIN';
+        } else if (username === 'operator') {
+            STATE.user = 'OPERATOR';
+        } else if (username === 'viewer') {
+            STATE.user = 'VIEWER';
+        } else {
+            showAlertModal('Gagal Login', 'Username tidak dikenal.');
+            return;
+        }
+
+        localStorage.setItem('scada_user', STATE.user);
+        document.getElementById('login-page').classList.add('hidden');
+        document.getElementById('app').classList.remove('hidden');
+        initializeApp();
+        showPage('dashboard');
+    }
+
+    function logout() {
+        localStorage.removeItem('scada_user');
+        STATE.user = null;
+        document.getElementById('app').classList.add('hidden');
+        document.getElementById('login-page').classList.remove('hidden');
+        // Stop the data simulation loop
+        clearInterval(window.dataInterval);
+    }
+
+    function checkAuth() {
+        const storedUser = localStorage.getItem('scada_user');
+        if (storedUser) {
+            STATE.user = storedUser;
+            document.getElementById('login-page').classList.add('hidden');
+            document.getElementById('app').classList.remove('hidden');
+            initializeApp();
+            showPage('dashboard');
+        } else {
+            document.getElementById('login-page').classList.remove('hidden');
+            document.getElementById('app').classList.add('hidden');
+        }
+    }
+
+    // --- NAVIGATION LOGIC ---
+
+    function showPage(pageId) {
+        // Pengecekan Akses untuk halaman Master Settings
+        if (pageId === 'master_settings' && !hasPermission('ADMIN')) {
+            showAlertModal('Akses Ditolak', 'Halaman Master Settings hanya dapat diakses oleh Admin.');
+            // Jika user tidak berhak, kembalikan ke dashboard
+            pageId = 'dashboard'; 
+        }
+
+        document.querySelectorAll('.page-content').forEach(p => p.classList.add('hidden'));
+        document.getElementById(`page-${pageId}`).classList.remove('hidden');
+
+        // Update active class in sidebar (desktop)
+        document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('bg-blue-700'));
+        const activeNav = document.getElementById(`nav-${pageId}`);
+        if (activeNav) {
+            activeNav.classList.add('bg-blue-700');
+        }
+        
+        // Update mobile menu selection
+        document.getElementById('mobile-menu').value = pageId;
+    }
+
+    // --- COMMANDING & CONTROLLING MOCK (OPERATOR & ADMIN) ---
+
+    function setMode(mode) {
+        if (!hasPermission('OPERATOR')) {
+            showAlertModal('Akses Ditolak', 'Anda tidak memiliki izin untuk mengganti mode operasi.');
+            return;
+        }
+
+        STATE.currentMode = mode;
+        
+        // Update UI Mode Buttons
+        document.querySelectorAll('#control-mode-panel button').forEach(btn => {
+            btn.classList.remove('bg-blue-600', 'text-white');
+            btn.classList.add('bg-white', 'text-gray-600');
+        });
+        document.getElementById(`mode-${mode.toLowerCase()}`).classList.remove('bg-white', 'text-gray-600');
+        document.getElementById(`mode-${mode.toLowerCase()}`).classList.add('bg-blue-600', 'text-white');
+        document.getElementById('current-mode-display').textContent = mode;
+
+        // Toggle Manual Control Section visibility
+        const manualSection = document.getElementById('manual-control-section');
+        if (mode === 'MANUAL') {
+            manualSection.classList.remove('hidden');
+            document.getElementById('auto-control-section').classList.add('hidden');
+        } else {
+            manualSection.classList.add('hidden');
+            document.getElementById('auto-control-section').classList.remove('hidden');
+        }
+        
+        // Panggil updateUI untuk menyesuaikan disabled state Manual Control
+        updateUI();
+    }
+
+    function setSystemSetpoint() {
+        if (!hasPermission('OPERATOR')) {
+            showAlertModal('Akses Ditolak', 'Anda tidak memiliki izin untuk mengubah Setpoint Debit.');
+            return;
+        }
+        const setpoint = parseInt(document.getElementById('target-debit').value);
+        if (isNaN(setpoint) || setpoint < 0) {
+            showAlertModal('Input Invalid', 'Setpoint Debit harus angka positif.');
+            return;
+        }
+        STATE.systemSetpoint = setpoint;
+        showAlertModal('Command Sukses', `Target Debit sistem diatur ke ${setpoint} L/s.`);
+    }
+    
+    // --- MANUAL CONTROL (ADMIN ONLY) ---
+    
+    function togglePump(pumpId) {
+        if (STATE.currentMode !== 'MANUAL') {
+            showAlertModal('Gagal Command', 'Pompa hanya dapat dihidupkan/dimatikan di mode MANUAL.');
+            return;
+        }
+        if (!hasPermission('ADMIN')) {
+            showAlertModal('Akses Ditolak', 'Kontrol Pompa Manual hanya dapat dilakukan oleh Admin.');
+            return;
+        }
+
+        const pump = STATE.pumps[pumpId - 1];
+        pump.isRunning = !pump.isRunning;
+        pump.speedPct = pump.isRunning ? 50 : 0; // Default speed when turned on manually
+
+        showAlertModal('Command Sukses', `Pompa ${pumpId} ${pump.isRunning ? 'Dihidupkan' : 'Dimatikan'} secara manual.`);
+        updateUI(); // Immediate UI update
+    }
+
+    function setManualSpeed(pumpId, speed) {
+        if (STATE.currentMode !== 'MANUAL') return;
+        if (!hasPermission('ADMIN')) {
+            // Jika bukan admin, reset slider value
+            document.querySelector(`#manual-control-section input[type="range"][onchange*="setManualSpeed(${pumpId},"]`).value = STATE.pumps[pumpId - 1].speedPct;
+            showAlertModal('Akses Ditolak', 'Pengaturan Speed Manual hanya dapat dilakukan oleh Admin.');
+            return;
+        }
+
+        const pump = STATE.pumps[pumpId - 1];
+        pump.speedPct = parseInt(speed);
+        if (pump.speedPct > 0) {
+            pump.isRunning = true;
+        } else {
+            pump.isRunning = false;
+        }
+        
+        document.getElementById(`pump-${pumpId}-manual-speed`).textContent = `${speed}%`;
+        // Update toggle button state immediately for responsiveness
+        updatePumpToggleButton(pumpId);
+        updatePumpSchematic(pump);
+    }
+
+
+    // --- DATA SIMULATION & RENDERING ---
+
+    // Simulasi Algoritma Kontrol (PID/Staging Mock)
+    function runControlAlgorithm() {
+        let requiredFlow = STATE.systemSetpoint;
+        
+        // 1. Staging Logic (simplified)
+        const maxPumps = requiredFlow > 350 ? 3 : (requiredFlow > 180 ? 2 : (requiredFlow > 0 ? 1 : 0));
+        
+        // 2. Speed Control Logic (Simplified Load Sharing)
+        let pumpCount = 0;
+        if (requiredFlow > 0 && STATE.currentMode === 'AUTO') {
+            pumpCount = Math.min(maxPumps, 3); 
+            // Calculate ideal speed per active pump
+            const idealSpeed = Math.min(100, Math.ceil((requiredFlow / pumpCount) / (CONFIG.MAX_DEBIT / 3) * 100));
+
+            // Set running state and speed based on the algorithm
+            for (let i = 0; i < STATE.pumps.length; i++) {
+                if (i < pumpCount) {
+                    STATE.pumps[i].isRunning = true;
+                    STATE.pumps[i].speedPct = idealSpeed;
+                } else {
+                    STATE.pumps[i].isRunning = false;
+                    STATE.pumps[i].speedPct = 0;
+                }
+            }
+        }
+        
+        // 3. Flowmeter Calculation
+        let totalSpeed = STATE.pumps.reduce((sum, p) => sum + (p.isRunning ? p.speedPct : 0), 0);
+        STATE.flowmeter.debit = (totalSpeed / 300) * CONFIG.MAX_DEBIT; // Max 300% speed total (3x 100%)
+        
+        // 4. Totalizer Accumulation (Simulasi 1 detik)
+        STATE.flowmeter.totalizer += (STATE.flowmeter.debit * (1 / 3600)); // L/s ke m³/jam
+    }
+
+    // Simulasi Data Real-time (Arus, Level)
+    function simulateData() {
+        if (STATE.currentMode === 'AUTO') {
+            runControlAlgorithm();
+        }
+
+        let totalCurrent = 0;
+
+        STATE.pumps.forEach(p => {
+            if (p.isRunning) {
+                // Arus berdasarkan speed (5% - 100% dari Max Current)
+                let baseCurrent = CONFIG.MAX_CURRENT * (p.speedPct / 100);
+                // Tambahkan noise, tetapi jaga agar tidak terlalu sering fault (dibatasi 120% arus normal)
+                p.currentA = (baseCurrent * (0.8 + Math.random() * 0.4)).toFixed(1); 
+                totalCurrent += parseFloat(p.currentA);
+            } else {
+                p.currentA = 0.0;
+                p.fault = false;
+            }
+        });
+        
+        // Simulasi Level Air (Level turun jika debit tinggi)
+        const flowFactor = STATE.flowmeter.debit / CONFIG.MAX_DEBIT;
+        STATE.level = (STATE.level - (flowFactor * 0.01) + 0.005).toFixed(2); // Fluktuasi kecil
+        if (STATE.level < 1.0) STATE.level = 1.0; // Batas Bawah
+        if (STATE.level > 4.0) STATE.level = 4.0; // Batas Atas
+        
+        checkAlarms();
+        updateUI();
+    }
+    
+    // Pengecekan Alarm
+    function checkAlarms() {
+        // Hanya hapus alarm non-faults untuk simulasi
+        STATE.alarms = STATE.alarms.filter(a => a.priority === 'CRITICAL' && a.description.includes('Trip/Fault')); 
+
+        // Alarm 1: Level Air Kritis
+        if (STATE.level <= CONFIG.ALARM_THRESHOLD_LEVEL && !STATE.alarms.some(a => a.description.includes('Level air rendah'))) {
+            STATE.alarms.push({
+                time: new Date().toLocaleTimeString(),
+                priority: 'CRITICAL',
+                description: `Level air rendah (${STATE.level} m). Intake terancam kering!`,
+                acknowledged: false
+            });
+        }
+        
+        // Alarm 2: Debit Hampir Maksimal
+        if (STATE.flowmeter.debit >= CONFIG.ALARM_THRESHOLD_DEBIT && !STATE.alarms.some(a => a.description.includes('Debit mendekati batas maksimal'))) {
+            STATE.alarms.push({
+                time: new Date().toLocaleTimeString(),
+                priority: 'WARNING',
+                description: `Debit mendekati batas maksimal sistem (${STATE.flowmeter.debit.toFixed(1)} L/s).`,
+                acknowledged: false
+            });
+        } else if (STATE.flowmeter.debit < CONFIG.ALARM_THRESHOLD_DEBIT) {
+            // Clear warning jika sudah teratasi
+            STATE.alarms = STATE.alarms.filter(a => !a.description.includes('Debit mendekati batas maksimal'));
+        }
+
+        // Alarm 3: Pompa Fault
+        STATE.pumps.forEach(p => {
+            if (p.currentA > CONFIG.MAX_CURRENT * 1.1) { // Current over 110%
+                if (!p.fault) {
+                    p.fault = true;
+                    STATE.alarms.push({
+                        time: new Date().toLocaleTimeString(),
+                        priority: 'CRITICAL',
+                        description: `Pompa ${p.id} Trip/Fault (Arus tinggi: ${p.currentA} A)!`,
+                        acknowledged: false
+                    });
+                }
+            } else if (p.fault && p.currentA <= CONFIG.MAX_CURRENT) {
+                // Simulasikan auto-reset fault jika arus kembali normal
+                // Di sistem nyata, fault harus di-reset secara manual atau oleh sistem
+                p.fault = false;
+                STATE.alarms = STATE.alarms.filter(a => !a.description.includes(`Pompa ${p.id} Trip/Fault`));
+            }
+        });
+    }
+
+    // Update UI Elements
+    function updateUI() {
+        const isOperator = hasPermission('OPERATOR');
+        const isAdmin = hasPermission('ADMIN');
+        const isManualMode = STATE.currentMode === 'MANUAL';
+
+        // --- Global Info ---
+        document.getElementById('user-info').textContent = `User: ${STATE.user} (${STATE.currentMode})`;
+
+        // --- Monitoring Cards ---
+        document.getElementById('monitor-debit').textContent = `${STATE.flowmeter.debit.toFixed(1)} L/s`;
+        document.getElementById('monitor-level').textContent = `${STATE.level} m`;
+        document.getElementById('monitor-totalizer').textContent = `${STATE.flowmeter.totalizer.toFixed(2)} m³`;
+        document.getElementById('monitor-active-pumps').textContent = `${STATE.pumps.filter(p => p.isRunning).length} / 3`;
+
+        // Update Level card color
+        const levelCard = document.getElementById('monitor-level').parentElement;
+        levelCard.classList.remove('border-red-500', 'border-green-500', 'border-orange-500');
+        if (STATE.level <= CONFIG.ALARM_THRESHOLD_LEVEL + 0.5 && STATE.level > CONFIG.ALARM_THRESHOLD_LEVEL) {
+             levelCard.classList.add('border-orange-500'); // Warning
+        } else if (STATE.level <= CONFIG.ALARM_THRESHOLD_LEVEL) {
+            levelCard.classList.add('border-red-500'); // Critical
+        }
+        else {
+            levelCard.classList.add('border-green-500');
+        }
+        
+        // --- Schematic Visualization ---
+        document.getElementById('flow-display-schematic').textContent = `${STATE.flowmeter.debit.toFixed(0)} L/s`;
+
+        // --- Pump Details & Schematic ---
+        STATE.pumps.forEach(p => {
+            const freq = (p.speedPct / 100) * CONFIG.MAX_SPEED_HZ;
+            document.getElementById(`p${p.id}-speed`).textContent = `${p.speedPct}% (${freq.toFixed(1)} Hz)`;
+            document.getElementById(`p${p.id}-current`).textContent = `${p.currentA} A`;
+            
+            updatePumpSchematic(p);
+            updatePumpDetails(p);
+            updatePumpToggleButton(p.id);
+        });
+
+        // --- Alarms List ---
+        renderAlarms();
+
+        // --- RBAC & Control Panel Visibility ---
+        
+        // Mode Control buttons (Operator/Admin)
+        document.querySelectorAll('#control-mode-panel button').forEach(el => {
+            el.disabled = !isOperator;
+        });
+        
+        // Setpoint Control (Operator/Admin)
+        document.getElementById('target-debit').disabled = !isOperator;
+        document.getElementById('setpoint-btn').disabled = !isOperator;
+        
+        // Manual Control Section (Admin only in Manual Mode)
+        const manualControlDisabled = !(isAdmin && isManualMode);
+        document.getElementById('manual-control-info').classList.toggle('hidden', isAdmin);
+        
+        document.querySelectorAll('#manual-control-section button, #manual-control-section input').forEach(el => {
+             el.disabled = manualControlDisabled;
+             // Tambahkan visual feedback untuk tombol yang di-disable
+             if (manualControlDisabled) {
+                el.classList.add('opacity-50', 'cursor-not-allowed');
+             } else {
+                el.classList.remove('opacity-50', 'cursor-not-allowed');
+             }
+        });
+        
+        // Master Settings Link Visibility (Admin only)
+        document.getElementById('nav-master_settings').classList.toggle('hidden', !isAdmin);
+        document.querySelector('#mobile-menu option[value="master_settings"]').disabled = !isAdmin;
+    }
+    
+    function updatePumpToggleButton(pumpId) {
+        const pump = STATE.pumps[pumpId - 1];
+        const toggleBtn = document.getElementById(`pump-${pumpId}-toggle`);
+        
+        if (pump.isRunning) {
+            toggleBtn.textContent = 'STOP';
+            toggleBtn.classList.remove('bg-green-500', 'hover:bg-green-600', 'bg-gray-300');
+            toggleBtn.classList.add('bg-red-500', 'hover:bg-red-600', 'text-white');
+        } else {
+            toggleBtn.textContent = 'START';
+            toggleBtn.classList.remove('bg-red-500', 'hover:bg-red-600', 'text-white');
+            toggleBtn.classList.add('bg-green-500', 'hover:bg-green-600', 'text-white');
+        }
+    }
+
+    function updatePumpSchematic(p) {
+        const pumpElement = document.getElementById(`pump-${p.id}`);
+        const pipeElement = document.getElementById(`pipe-${p.id}`);
+        const circle = pumpElement.querySelector('circle');
+        const text = pumpElement.querySelector('text');
+
+        // Reset classes
+        circle.classList.remove('status-running', 'status-trip');
+        pipeElement.setAttribute('stroke', '#6c757d');
+        
+        if (p.fault) {
+            circle.classList.add('status-trip');
+            circle.setAttribute('fill', '#ef4444');
+            circle.setAttribute('stroke', '#b91c1c');
+            text.textContent = 'TRIP';
+        } else if (p.isRunning) {
+            circle.classList.add('status-running');
+            circle.setAttribute('fill', '#22c55e');
+            circle.setAttribute('stroke', '#16a34a');
+            pipeElement.setAttribute('stroke', '#22c55e'); // Green flow
+            text.textContent = `${p.speedPct}%`;
+        } else {
+            circle.setAttribute('fill', '#fefefe');
+            circle.setAttribute('stroke', '#007bff');
+            text.textContent = 'STOP';
+        }
+    }
+    
+    function updatePumpDetails(p) {
+        const statusSpan = document.getElementById(`p${p.id}-status`);
+        statusSpan.classList.remove('text-green-600', 'text-red-600', 'text-gray-500');
+
+        if (p.fault) {
+            statusSpan.textContent = 'FAULT';
+            statusSpan.classList.add('text-red-600', 'font-extrabold');
+        } else if (p.isRunning) {
+            statusSpan.textContent = 'RUNNING';
+            statusSpan.classList.add('text-green-600', 'font-extrabold');
+        } else {
+            statusSpan.textContent = 'STOP';
+            statusSpan.classList.add('text-gray-500');
+        }
+    }
+    
+    function renderAlarms() {
+        const listContainer = document.getElementById('alarm-list');
+        const countSpan = document.getElementById('alarm-count');
+        const canAcknowledge = hasPermission('OPERATOR');
+        
+        listContainer.innerHTML = '';
+        
+        if (STATE.alarms.length === 0) {
+            listContainer.innerHTML = '<tr><td colspan="5" class="py-4 text-center text-gray-500">Tidak ada alarm aktif saat ini.</td></tr>';
+            countSpan.textContent = '0 Aktif';
+            countSpan.classList.remove('bg-red-200', 'text-red-800', 'bg-orange-200', 'text-orange-800');
+            countSpan.classList.add('bg-green-200', 'text-green-800');
+            return;
+        }
+
+        STATE.alarms.forEach((alarm, index) => {
+            const row = document.createElement('tr');
+            const priorityClass = alarm.priority === 'CRITICAL' ? 'bg-red-100 text-red-700 font-bold' : 'bg-orange-100 text-orange-700';
+            const statusText = alarm.acknowledged ? 'ACK' : 'UNACK';
+            const acknowledgeDisabled = alarm.acknowledged || !canAcknowledge;
+
+            row.innerHTML = `
+                <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">${alarm.time}</td>
+                <td class="px-4 py-2 whitespace-nowrap text-sm"><span class="px-2 inline-flex text-xs leading-5 rounded-full ${priorityClass}">${alarm.priority}</span></td>
+                <td class="px-4 py-2 text-sm text-gray-500">${alarm.description}</td>
+                <td class="px-4 py-2 whitespace-nowrap text-sm font-medium">${statusText}</td>
+                <td class="px-4 py-2 whitespace-nowrap text-sm font-medium">
+                    <button class="text-indigo-600 hover:text-indigo-900 ${acknowledgeDisabled ? 'opacity-50 cursor-not-allowed' : ''}" 
+                            onclick="acknowledgeAlarm(${index})" 
+                            ${acknowledgeDisabled ? 'disabled' : ''}>Acknowledge</button>
+                </td>
+            `;
+            listContainer.appendChild(row);
+        });
+
+        countSpan.textContent = `${STATE.alarms.length} Aktif`;
+        countSpan.classList.remove('bg-green-200', 'text-green-800');
+        
+        // Set warna alarm count
+        if (STATE.alarms.some(a => a.priority === 'CRITICAL')) {
+            countSpan.classList.add('bg-red-200', 'text-red-800');
+            countSpan.classList.remove('bg-orange-200', 'text-orange-800');
+        } else {
+             countSpan.classList.add('bg-orange-200', 'text-orange-800');
+             countSpan.classList.remove('bg-red-200', 'text-red-800');
+        }
+    }
+
+    function acknowledgeAlarm(index) {
+        if (!hasPermission('OPERATOR')) {
+            showAlertModal('Akses Ditolak', 'Anda tidak memiliki izin untuk melakukan Acknowledge Alarm.');
+            return;
+        }
+        STATE.alarms[index].acknowledged = true;
+        renderAlarms();
+    }
+
+
+    // --- INITIALIZATION ---
+
+    function initializeApp() {
+        // Render initial UI state (modes, etc.)
+        setMode(STATE.currentMode);
+        
+        // Start Lucide Icon rendering
+        lucide.createIcons();
+
+        // Start the data simulation loop
+        simulateData(); // Run once immediately
+        window.dataInterval = setInterval(simulateData, 1000); // Run every second
+    }
+
+    // Check auth on load
+    window.onload = checkAuth;
+
+</script>
+</body>
+</html>
