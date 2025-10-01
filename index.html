@@ -182,7 +182,7 @@
                                     <rect x="-20" y="-30" width="40" height="60" fill="#9ca3af" stroke="#4b5563" stroke-width="2" rx="5"/>
                                     <circle cx="0" cy="0" r="10" fill="#3b82f6"/>
                                     <text x="0" y="40" text-anchor="middle" class="text-sm font-bold fill-gray-800">Flowmeter</text>
-                                    <text id="flow-display-schematic" x="0" y="-10" text-anchor="middle" class="text-md font-bold fill-white">0 L/s</text>
+                                    <text id="flow-display-schematic" x="0" y="-40" text-anchor="middle" class="text-md font-bold fill-black">0 L/s</text>
                       </g>
 
                       <!-- Pipa ke WTP -->
@@ -262,8 +262,8 @@
                   </div>
 
                   <!-- AUTO/REMOTE CONTROL -->
-                  <div id="auto-control-section" class="border-t pt-4">
-                            <h3 class="font-bold text-lg mb-2">Kontrol Sistem (Mode <span id="current-mode-display">MANUAL</span>)</h3>
+                  <div id="auto-control-section" class="border-t pt-4 hidden">
+                            <h3 class="font-bold text-lg mb-2">Kontrol Sistem (Mode <span id="current-mode-display">REMOTE</span>)</h3>
                     <div class="space-y-3">
                                 <label for="target-debit" class="block text-sm font-medium text-gray-700">Target Debit (Setpoint L/s)</label>
                                 <input type="number" id="target-debit" min="0" max="1000" step="5" class="w-full p-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500" value="150">
@@ -272,6 +272,21 @@
                       </button>
                     </div>
                   </div>
+
+                  <!-- REMOTE MODE INFO (Sistem Offline) -->
+                        <div id="remote-mode-info" class="border-t pt-4 mt-4">
+                            <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                                <h3 class="font-bold text-lg text-red-600 mb-3 flex items-center">
+                                    <i data-lucide="wifi-off" class="w-5 h-5 mr-2"></i> Mode Manual - Sistem Offline
+                                </h3>
+                                <p class="text-sm text-red-700 mb-2">
+                                    <strong>SCADA terputus dari dashboard.</strong> Panel kontrol di setting offline dan tidak dapat diakses via dashboard.
+                                </p>
+                                <p class="text-sm text-gray-600">
+                                    Kontrol sistem dan setup debit air tidak tersedia dalam mode ini.
+                                </p>
+                            </div>
+                        </div>
 
                   <!-- MANUAL PUMP CONTROL (Hanya terlihat di mode MANUAL) -->
                         <div id="manual-control-section" class="border-t pt-4 mt-4 hidden">
@@ -678,7 +693,7 @@
 
       let STATE = {
         user: null, // 'ADMIN', 'OPERATOR', 'VIEWER'
-        currentMode: 'AUTO',
+        currentMode: 'REMOTE',
         systemSetpoint: 150, // L/s Target Debit
         pumps: [
           { id: 1, isRunning: false, speedPct: 0, currentA: 0.0, fault: false },
@@ -846,12 +861,51 @@
 
         // Toggle Manual Control Section visibility
         const manualSection = document.getElementById('manual-control-section');
+        const autoControlSection = document.getElementById('auto-control-section');
+        const remoteModeInfo = document.getElementById('remote-mode-info');
+        
         if (mode === 'MANUAL') {
+            // Mode MANUAL: Normal operation, tampilkan kontrol pompa manual
             manualSection.classList.remove('hidden');
-            document.getElementById('auto-control-section').classList.add('hidden');
-        } else {
+            autoControlSection.classList.add('hidden');
+            remoteModeInfo.classList.add('hidden');
+            
+            // Update connection status to show online
+            const connectionStatus = document.getElementById('connection-status');
+            if (connectionStatus) {
+                connectionStatus.innerHTML = `
+                    <div class="w-2 h-2 rounded-full bg-green-500 mr-2 status-running"></div>
+                    <span class="text-gray-700">Gateway: ONLINE</span>
+                `;
+            }
+        } else if (mode === 'REMOTE') {
+            // Mode REMOTE: SCADA disconnect, panel offline, tidak ada kontrol sistem
             manualSection.classList.add('hidden');
-            document.getElementById('auto-control-section').classList.remove('hidden');
+            autoControlSection.classList.add('hidden');
+            remoteModeInfo.classList.remove('hidden');
+            
+            // Update connection status to show offline
+            const connectionStatus = document.getElementById('connection-status');
+            if (connectionStatus) {
+                connectionStatus.innerHTML = `
+                    <div class="w-2 h-2 rounded-full bg-red-500 mr-2"></div>
+                    <span class="text-gray-700">Gateway: OFFLINE</span>
+                `;
+            }
+        } else {
+            // Mode AUTO: Normal operation
+            manualSection.classList.add('hidden');
+            autoControlSection.classList.remove('hidden');
+            remoteModeInfo.classList.add('hidden');
+            
+            // Update connection status to show online
+            const connectionStatus = document.getElementById('connection-status');
+            if (connectionStatus) {
+                connectionStatus.innerHTML = `
+                    <div class="w-2 h-2 rounded-full bg-green-500 mr-2 status-running"></div>
+                    <span class="text-gray-700">Gateway: ONLINE</span>
+                `;
+            }
         }
 
         // Panggil updateUI untuk menyesuaikan disabled state Manual Control
@@ -888,7 +942,7 @@
         pump.isRunning = !pump.isRunning;
         pump.speedPct = pump.isRunning ? 50 : 0; // Default speed when turned on manually
 
-        showAlertModal('Command Sukses', `Pompa ${pumpId} ${pump.isRunning ? 'Dihidupkan' : 'Dimatikan'} secara manual.`);
+        showAlertModal('Command Sukses', `Pompa ${pumpId} ${pump.isRunning ? 'Dihidupkan' : 'Dimatikan'} secara remote.`);
         // Recalculate flow immediately in MANUAL mode and update UI
         recalcFlowFromPumps();
         updateUI(); // Immediate UI update
@@ -1066,7 +1120,7 @@
         const isManualMode = STATE.currentMode === 'MANUAL';
 
         // --- Global Info ---
-        document.getElementById('user-info').textContent = `User: ${STATE.user} (${STATE.currentMode})`;
+        document.getElementById('user-info').textContent = `User: ${STATE.user}`;
 
         // --- Monitoring Cards ---
         document.getElementById('monitor-debit').textContent = `${STATE.flowmeter.debit.toFixed(1)} L/s`;
@@ -1586,12 +1640,12 @@
                 slidePID.classList.remove('hidden');
                 slideImg.classList.add('hidden');
                 indicator.textContent = '1 / 2';
-                vizTitle.textContent = 'Water Intake Visualization (P&ID)';
+                vizTitle.textContent = 'Water Intake Visualization ';
             } else {
                 slidePID.classList.add('hidden');
                 slideImg.classList.remove('hidden');
                 indicator.textContent = '2 / 2';
-                vizTitle.textContent = '3D Water Intake Visualization (P&ID)';
+                vizTitle.textContent = '3D Water Intake Visualization / CCTV View ';
             }
         }
         const prevBtn = document.getElementById('viz-prev');
