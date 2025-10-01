@@ -9,6 +9,7 @@
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Load Lucide Icons for aesthetic icons -->
+     
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
       /* Mengatur font Inter */
@@ -463,7 +464,7 @@
                         </div>
                     </div>
 
-                    <div class="grid md:grid-cols-3 gap-3">
+                    <div class="grid md:grid-cols-4 gap-3">
                         <div>
                             <label class="block text-xs font-medium text-gray-600 mb-1">Speed Max (%)</label>
                             <input type="number" step="1" id="pump-speed-max" placeholder="" class="w-full p-2 border rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">
@@ -471,6 +472,10 @@
                         <div>
                             <label class="block text-xs font-medium text-gray-600 mb-1">Arus Max (A)</label>
                             <input type="number" step="0.1" id="pump-current-max" placeholder="" class="w-full p-2 border rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Totalizer Min (Jam)</label>
+                            <input type="number" step="0.01" id="pump-totalizer-min" placeholder="0.00" class="w-full p-2 border rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-gray-600 mb-1">Cari (Deskripsi/Note)</label>
@@ -495,10 +500,11 @@
                                     <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                                     <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Speed (%)</th>
                                     <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Arus (A)</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Totalizer Jam</th>
                                 </tr>
                             </thead>
                             <tbody id="pump-log-body" class="bg-white divide-y divide-gray-200">
-                                <tr><td colspan="5" class="py-4 text-center text-gray-500">Belum ada riwayat pompa.</td></tr>
+                                <tr><td colspan="6" class="py-4 text-center text-gray-500">Belum ada riwayat pompa.</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -712,9 +718,9 @@
         currentMode: 'REMOTE',
         systemSetpoint: 150, // L/s Target Debit
         pumps: [
-          { id: 1, isRunning: false, speedPct: 0, currentA: 0.0, fault: false },
-          { id: 2, isRunning: false, speedPct: 0, currentA: 0.0, fault: false },
-          { id: 3, isRunning: false, speedPct: 0, currentA: 0.0, fault: false },
+          { id: 1, isRunning: false, speedPct: 0, currentA: 0.0, fault: false, totalizerHours: 0.0 },
+          { id: 2, isRunning: false, speedPct: 0, currentA: 0.0, fault: false, totalizerHours: 0.0 },
+          { id: 3, isRunning: false, speedPct: 0, currentA: 0.0, fault: false, totalizerHours: 0.0 },
         ],
         flowmeter: { debit: 0, totalizer: 12345.67 },
         level: 3.5, // meter
@@ -1522,13 +1528,19 @@
         const now = new Date();
         STATE.pumps.forEach(p => {
             const status = p.fault ? 'FAULT' : (p.isRunning ? 'RUNNING' : 'STOP');
+            // Hitung totalizer jam berdasarkan status RUNNING
+            const runningHours = p.isRunning ? (PUMP_SAMPLING_INTERVAL_SEC / 3600) : 0; // Konversi detik ke jam
+            // Update totalizer jam kumulatif
+            p.totalizerHours += runningHours;
+            
             STATE.pumpHistory.unshift({
                 timeISO: now.toISOString(),
                 time: now.toLocaleString(),
                 pumpId: p.id,
                 status,
                 speedPct: p.speedPct,
-                currentA: parseFloat(p.currentA)
+                currentA: parseFloat(p.currentA),
+                totalizerHours: p.totalizerHours
             });
         });
         if (STATE.pumpHistory.length > 5000) {
@@ -1552,6 +1564,7 @@
             speedMax: document.getElementById('pump-speed-max')?.value || '',
             currentMin: document.getElementById('pump-current-min')?.value || '',
             currentMax: document.getElementById('pump-current-max')?.value || '',
+            totalizerMin: document.getElementById('pump-totalizer-min')?.value || '',
             search: document.getElementById('pump-search')?.value.trim().toLowerCase() || '',
         };
     }
@@ -1564,8 +1577,9 @@
             const statusOk = (f.status === 'ALL' || item.status === f.status);
             const speedOk = ((f.speedMin === '' || item.speedPct >= parseFloat(f.speedMin)) && (f.speedMax === '' || item.speedPct <= parseFloat(f.speedMax)));
             const currentOk = ((f.currentMin === '' || item.currentA >= parseFloat(f.currentMin)) && (f.currentMax === '' || item.currentA <= parseFloat(f.currentMax)));
+            const totalizerOk = (f.totalizerMin === '' || item.totalizerHours >= parseFloat(f.totalizerMin));
             const searchOk = (!f.search || (`Pompa ${item.pumpId} ${item.status}`).toLowerCase().includes(f.search));
-            return timeOk && idOk && statusOk && speedOk && currentOk && searchOk;
+            return timeOk && idOk && statusOk && speedOk && currentOk && totalizerOk && searchOk;
         });
     }
 
@@ -1579,7 +1593,7 @@
         const pageItems = filtered.slice(start, start + PUMP_LOG_PAGE_SIZE);
         body.innerHTML = '';
         if (pageItems.length === 0) {
-            body.innerHTML = '<tr><td colspan="5" class="py-4 text-center text-gray-500">Tidak ada data sesuai filter.</td></tr>';
+            body.innerHTML = '<tr><td colspan="6" class="py-4 text-center text-gray-500">Tidak ada data sesuai filter.</td></tr>';
         } else {
             pageItems.forEach(item => {
                 const statusBadge = item.status === 'FAULT' ? 'bg-red-100 text-red-700' : (item.status === 'RUNNING' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700');
@@ -1590,6 +1604,7 @@
                     <td class=\"px-4 py-2 whitespace-nowrap text-xs\"><span class=\"px-2 inline-flex text-xs leading-5 rounded-full ${statusBadge}\">${item.status}</span></td>
                     <td class=\"px-4 py-2 whitespace-nowrap text-sm text-gray-700\">${item.speedPct}</td>
                     <td class=\"px-4 py-2 whitespace-nowrap text-sm text-gray-700\">${item.currentA.toFixed(1)}</td>
+                    <td class=\"px-4 py-2 whitespace-nowrap text-sm text-gray-700\">${item.totalizerHours.toFixed(2)}</td>
                 `;
                 body.appendChild(tr);
             });
@@ -1612,6 +1627,7 @@
         if (el('pump-speed-max')) el('pump-speed-max').value = '';
         if (el('pump-current-min')) el('pump-current-min').value = '';
         if (el('pump-current-max')) el('pump-current-max').value = '';
+        if (el('pump-totalizer-min')) el('pump-totalizer-min').value = '';
         if (el('pump-search')) el('pump-search').value = '';
         pumpCurrentPage = 1;
         renderPumpLog();
@@ -1619,8 +1635,8 @@
 
     function exportPumpLogCSV() {
         const filtered = applyPumpFilters(STATE.pumpHistory);
-        const rows = [['Waktu','Pompa','Status','Speed (%)','Arus (A)']].concat(
-            filtered.map(i => [i.time, i.pumpId, i.status, i.speedPct, i.currentA.toFixed(1)])
+        const rows = [['Waktu','Pompa','Status','Speed (%)','Arus (A)','Totalizer Jam']].concat(
+            filtered.map(i => [i.time, i.pumpId, i.status, i.speedPct, i.currentA.toFixed(1), i.totalizerHours.toFixed(2)])
         );
         const csv = rows.map(r => r.map(field => `"${String(field).replace(/"/g, '""')}"`).join(',')).join('\n');
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
