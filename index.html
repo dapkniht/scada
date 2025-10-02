@@ -38,6 +38,14 @@
             0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
             50% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
       }
+      /* Animation for slider snap-back feedback */
+      .slider-snap-feedback {
+            animation: snap-highlight 1s ease-out;
+      }
+      @keyframes snap-highlight {
+            0% { background-color: #fbbf24; transform: scale(1.1); }
+            100% { background-color: transparent; transform: scale(1); }
+      }
     </style>
   </head>
   <body class="min-h-screen">
@@ -58,7 +66,7 @@
           />
 
           <h1 class="text-2xl font-extrabold text-blue-800">
-            SCADA KBP-ARSINDO
+            SCADA KBP
           </h1>
           <span
             class="ml-4 px-3 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800"
@@ -199,16 +207,11 @@
                 </div>
 
                 <!-- MONITORING CARDS -->
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
                         <div class="bg-blue-600 text-white p-4 rounded-xl shadow-lg flex flex-col items-center">
                     <i data-lucide="zap" class="w-6 h-6 mb-2"></i>
                     <p class="text-lg font-medium">Total Debit</p>
                     <p id="monitor-debit" class="text-3xl font-bold">0 L/s</p>
-                  </div>
-                        <div class="bg-white text-gray-700 p-4 rounded-xl shadow-lg border-2 border-green-500 flex flex-col items-center">
-                            <i data-lucide="gauge" class="w-6 h-6 mb-2 text-green-600"></i>
-                    <p class="text-lg font-medium">Level Air</p>
-                    <p id="monitor-level" class="text-3xl font-bold">2.5 m</p>
                   </div>
                         <div class="bg-white text-gray-700 p-4 rounded-xl shadow-lg border flex flex-col items-center">
                             <i data-lucide="plug-zap" class="w-6 h-6 mb-2 text-yellow-600"></i>
@@ -267,7 +270,7 @@
                             <h3 class="font-bold text-lg mb-2">Kontrol Sistem (Mode <span id="current-mode-display">REMOTE</span>)</h3>
                     <div class="space-y-3">
                                 <label for="target-debit" class="block text-sm font-medium text-gray-700">Target Debit (Setpoint L/s)</label>
-                                <input type="number" id="target-debit" min="0" max="1000" step="5" class="w-full p-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500" value="150">
+                                <input type="number" id="target-debit" min="0" max="150" step="5" class="w-full p-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500" value="100">
                                 <button onclick="setSystemSetpoint()" id="setpoint-btn" class="w-full py-2 px-4 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 transition duration-300">
                         APLIKASIKAN SETPOINT
                       </button>
@@ -295,12 +298,18 @@
                                 <i data-lucide="lock" class="w-5 h-5 mr-2"></i> Kontrol Pompa Remote
                     </h3>
                             <p id="manual-control-info" class="text-sm text-gray-500 mb-3 italic">Fitur ini hanya dapat diakses oleh Admin.</p>
+                            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-3">
+                                <p class="text-sm text-yellow-800 flex items-center">
+                                    <i data-lucide="thermometer" class="w-4 h-4 mr-2"></i>
+                                    <strong>Info:</strong> Speed minimum 70% diperlukan untuk cooling fan mencegah overheat. Slider dibatasi minimum 70% di mode REMOTE.
+                                </p>
+                            </div>
                     <!-- Pompa 1 -->
                             <div class="p-3 bg-gray-50 rounded-lg mb-2 flex items-center justify-between">
                       <span class="font-semibold">Pompa 1</span>
                       <div class="flex items-center space-x-2">
                                     <button onclick="togglePump(1)" id="pump-1-toggle" class="px-3 py-1 text-sm rounded-lg font-medium bg-gray-300"></button>
-                                    <input type="range" min="0" max="100" value="0" class="w-24 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer range-lg" onchange="setManualSpeed(1, this.value)">
+                                    <input type="range" min="70" max="100" value="0" class="w-24 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer range-lg" onchange="setManualSpeed(1, this.value)" title="Min 70% untuk cooling fan">
                                     <span id="pump-1-manual-speed" class="text-sm font-bold w-10 text-right">0%</span>
                       </div>
                     </div>
@@ -309,7 +318,7 @@
                       <span class="font-semibold">Pompa 2</span>
                       <div class="flex items-center space-x-2">
                                     <button onclick="togglePump(2)" id="pump-2-toggle" class="px-3 py-1 text-sm rounded-lg font-medium bg-gray-300"></button>
-                                    <input type="range" min="0" max="100" value="0" class="w-24 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer range-lg" onchange="setManualSpeed(2, this.value)">
+                                    <input type="range" min="70" max="100" value="0" class="w-24 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer range-lg" onchange="setManualSpeed(2, this.value)" title="Min 70% untuk cooling fan">
                                     <span id="pump-2-manual-speed" class="text-sm font-bold w-10 text-right">0%</span>
                       </div>
                     </div>
@@ -318,7 +327,7 @@
                       <span class="font-semibold">Pompa 3</span>
                       <div class="flex items-center space-x-2">
                                     <button onclick="togglePump(3)" id="pump-3-toggle" class="px-3 py-1 text-sm rounded-lg font-medium bg-gray-300"></button>
-                                    <input type="range" min="0" max="100" value="0" class="w-24 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer range-lg" onchange="setManualSpeed(3, this.value)">
+                                    <input type="range" min="70" max="100" value="0" class="w-24 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer range-lg" onchange="setManualSpeed(3, this.value)" title="Min 70% untuk cooling fan">
                                     <span id="pump-3-manual-speed" class="text-sm font-bold w-10 text-right">0%</span>
                       </div>
                     </div>
@@ -332,7 +341,9 @@
                     <!-- Detail Pompa 1 -->
                     <div class="p-3 rounded-lg border" id="detail-p1">
                       <h4 class="font-bold text-blue-600">Pompa 1</h4>
-                                <div class="flex justify-between text-sm py-1"><span class="text-gray-600">Speed:</span><span id="p1-speed" class="font-semibold">0% (0 Hz)</span></div>
+                                <div class="flex justify-between text-sm py-1"><span class="text-gray-600">Speed (%):</span><span id="p1-speed-pct" class="font-semibold">0%</span></div>
+                                <div class="flex justify-between text-sm py-1"><span class="text-gray-600">RPM:</span><span id="p1-rpm" class="font-semibold">0 rpm</span></div>
+                                <div class="flex justify-between text-sm py-1"><span class="text-gray-600">Frequency:</span><span id="p1-frequency" class="font-semibold">0.0 Hz</span></div>
                                 <div class="flex justify-between text-sm py-1"><span class="text-gray-600">Arus (A):</span><span id="p1-current" class="font-semibold">0.0 A</span></div>
                                 <div class="flex justify-between text-sm py-1"><span class="text-gray-600">Tegangan (V):</span><span id="p1-voltage" class="font-semibold">380 V</span></div>
                                 <div class="flex justify-between text-sm py-1"><span class="text-gray-600">Status:</span><span id="p1-status" class="font-semibold text-gray-500">STOP</span></div>
@@ -340,7 +351,9 @@
                     <!-- Detail Pompa 2 -->
                     <div class="p-3 rounded-lg border" id="detail-p2">
                       <h4 class="font-bold text-blue-600">Pompa 2</h4>
-                                <div class="flex justify-between text-sm py-1"><span class="text-gray-600">Speed:</span><span id="p2-speed" class="font-semibold">0% (0 Hz)</span></div>
+                                <div class="flex justify-between text-sm py-1"><span class="text-gray-600">Speed (%):</span><span id="p2-speed-pct" class="font-semibold">0%</span></div>
+                                <div class="flex justify-between text-sm py-1"><span class="text-gray-600">RPM:</span><span id="p2-rpm" class="font-semibold">0 rpm</span></div>
+                                <div class="flex justify-between text-sm py-1"><span class="text-gray-600">Frequency:</span><span id="p2-frequency" class="font-semibold">0.0 Hz</span></div>
                                 <div class="flex justify-between text-sm py-1"><span class="text-gray-600">Arus (A):</span><span id="p2-current" class="font-semibold">0.0 A</span></div>
                                 <div class="flex justify-between text-sm py-1"><span class="text-gray-600">Tegangan (V):</span><span id="p2-voltage" class="font-semibold">380 V</span></div>
                                 <div class="flex justify-between text-sm py-1"><span class="text-gray-600">Status:</span><span id="p2-status" class="font-semibold text-gray-500">STOP</span></div>
@@ -348,7 +361,9 @@
                     <!-- Detail Pompa 3 -->
                     <div class="p-3 rounded-lg border" id="detail-p3">
                       <h4 class="font-bold text-blue-600">Pompa 3</h4>
-                                <div class="flex justify-between text-sm py-1"><span class="text-gray-600">Speed:</span><span id="p3-speed" class="font-semibold">0% (0 Hz)</span></div>
+                                <div class="flex justify-between text-sm py-1"><span class="text-gray-600">Speed (%):</span><span id="p3-speed-pct" class="font-semibold">0%</span></div>
+                                <div class="flex justify-between text-sm py-1"><span class="text-gray-600">RPM:</span><span id="p3-rpm" class="font-semibold">0 rpm</span></div>
+                                <div class="flex justify-between text-sm py-1"><span class="text-gray-600">Frequency:</span><span id="p3-frequency" class="font-semibold">0.0 Hz</span></div>
                                 <div class="flex justify-between text-sm py-1"><span class="text-gray-600">Arus (A):</span><span id="p3-current" class="font-semibold">0.0 A</span></div>
                                 <div class="flex justify-between text-sm py-1"><span class="text-gray-600">Tegangan (V):</span><span id="p3-voltage" class="font-semibold">380 V</span></div>
                                 <div class="flex justify-between text-sm py-1"><span class="text-gray-600">Status:</span><span id="p3-status" class="font-semibold text-gray-500">STOP</span></div>
@@ -377,22 +392,22 @@
                       </tr>
                     </thead>
                             <tbody id="staging-table-body" class="bg-white divide-y divide-gray-200">
-                      <!-- Data Mock/Simulasi -->
+                      <!-- Data Mock/Simulasi - Updated for 50 L/s per pump -->
                       <tr>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">100</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">30%</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">35</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">70%</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">1</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"><a href="#" class="text-indigo-600 hover:text-indigo-900">Edit</a></td>
                       </tr>
                       <tr>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">200</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">40%</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">75</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">75%</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">2</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"><a href="#" class="text-indigo-600 hover:text-indigo-900">Edit</a></td>
                       </tr>
                       <tr>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">400</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">60%</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">150</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">100%</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">3</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"><a href="#" class="text-indigo-600 hover:text-indigo-900">Edit</a></td>
                       </tr>
@@ -404,12 +419,7 @@
                 <!-- ALARM THRESHOLDS -->
                 <div class="bg-white p-6 rounded-xl shadow-lg">
                         <h3 class="text-xl font-bold text-red-600 mb-4">Master Alarm Thresholds (Protection)</h3>
-                  <div class="grid md:grid-cols-3 gap-4">
-                    <div class="p-4 border rounded-lg">
-                      <h4 class="font-semibold">Level Air Kritis</h4>
-                                <p class="text-sm text-gray-600">Level Min: <span class="font-bold text-red-500">1.5 m</span></p>
-                                <p class="text-sm text-gray-600">Level Maks: <span class="font-bold text-red-500">4.0 m</span></p>
-                    </div>
+                  <div class="grid md:grid-cols-2 gap-4">
                     <div class="p-4 border rounded-lg">
                       <h4 class="font-semibold">Arus Pompa Drift</h4>
                                 <p class="text-sm text-gray-600">Arus Maks Normal: <span class="font-bold text-orange-500">12.0 A</span></p>
@@ -687,7 +697,7 @@
     <!-- LOGIN PAGE -->
 <div id="login-page" class="flex items-center justify-center min-h-screen bg-gray-100" style="background-image:url('illustration.png'); background-size:cover; background-position:center;">
     <div class="bg-white/80 backdrop-blur-sm border border-white/40 p-8 rounded-xl shadow-2xl w-full max-w-md">
-        <h2 class="text-3xl font-bold text-center text-blue-700 mb-6">Login SCADA KBP-Arsindo</h2>
+        <h2 class="text-3xl font-bold text-center text-blue-700 mb-6">Login SCADA KBP</h2>
         <div class="mb-4">
             <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
             <input type="text" id="username" class="mt-1 w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="admin, operator, atau viewer">
@@ -708,22 +718,22 @@
       const CONFIG = {
         MAX_SPEED_HZ: 50,
         MAX_CURRENT: 12.0,
-        MAX_DEBIT: 450, // L/s
-        ALARM_THRESHOLD_LEVEL: 1.5, // meter
-        ALARM_THRESHOLD_DEBIT: 420, // L/s
+        MAX_DEBIT_PER_PUMP: 50, // L/s per pump at 100% speed (2900 RPM, 50 Hz)
+        MAX_DEBIT_SYSTEM: 150, // L/s total system (3 pumps x 50 L/s)
+        ALARM_THRESHOLD_DEBIT: 140, // L/s (adjusted for new system capacity)
+        MIN_SPEED_REMOTE: 70, // Minimum speed 70% for REMOTE mode (cooling fan requirement)
       };
 
       let STATE = {
         user: null, // 'ADMIN', 'OPERATOR', 'VIEWER'
         currentMode: 'REMOTE',
-        systemSetpoint: 150, // L/s Target Debit
+        systemSetpoint: 100, // L/s Target Debit (within new system capacity)
         pumps: [
           { id: 1, isRunning: false, speedPct: 0, currentA: 0.0, fault: false, totalizerHours: 0.0 },
           { id: 2, isRunning: false, speedPct: 0, currentA: 0.0, fault: false, totalizerHours: 0.0 },
           { id: 3, isRunning: false, speedPct: 0, currentA: 0.0, fault: false, totalizerHours: 0.0 },
         ],
         flowmeter: { debit: 0, totalizer: 12345.67 },
-        level: 3.5, // meter
         alarms: [],
         alarmHistory: [], // {timeISO, time, priority, description, event}
         flowHistory: [],  // {timeISO, time, debit, totalizer}
@@ -930,6 +940,9 @@
             }
         }
 
+        // Update slider limits based on new mode
+        updateSliderLimits();
+        
         // Panggil updateUI untuk menyesuaikan disabled state Manual Control
         updateUI();
       }
@@ -962,9 +975,21 @@
 
         const pump = STATE.pumps[pumpId - 1];
         pump.isRunning = !pump.isRunning;
-        pump.speedPct = pump.isRunning ? 50 : 0; // Default speed when turned on manually
+        
+        // Set minimum speed based on mode - 70% for REMOTE mode (cooling fan requirement)
+        const minSpeed = STATE.currentMode === 'REMOTE' ? CONFIG.MIN_SPEED_REMOTE : 70;
+        pump.speedPct = pump.isRunning ? minSpeed : 0;
 
-        showAlertModal('Command Sukses', `Pompa ${pumpId} ${pump.isRunning ? 'Dihidupkan' : 'Dimatikan'} secara remote.`);
+        const speedInfo = pump.isRunning ? ` (Speed: ${pump.speedPct}% - Min untuk cooling fan)` : '';
+        showAlertModal('Command Sukses', `Pompa ${pumpId} ${pump.isRunning ? 'Dihidupkan' : 'Dimatikan'} secara remote.${speedInfo}`);
+        
+        // Update slider value to reflect the minimum speed
+        if (pump.isRunning) {
+            const slider = document.querySelector(`#manual-control-section input[type="range"][onchange*="setManualSpeed(${pumpId},"]`);
+            if (slider) slider.value = pump.speedPct;
+            document.getElementById(`pump-${pumpId}-manual-speed`).textContent = `${pump.speedPct}%`;
+        }
+        
         // Recalculate flow immediately in MANUAL mode and update UI
         recalcFlowFromPumps();
         updateUI(); // Immediate UI update
@@ -980,14 +1005,18 @@
         }
 
         const pump = STATE.pumps[pumpId - 1];
-        pump.speedPct = parseInt(speed);
+        
+        // Validate and correct speed value using the validation function
+        const correctedSpeed = validateSliderValue(pumpId, speed);
+        
+        pump.speedPct = correctedSpeed;
         if (pump.speedPct > 0) {
           pump.isRunning = true;
         } else {
           pump.isRunning = false;
         }
 
-        document.getElementById(`pump-${pumpId}-manual-speed`).textContent = `${speed}%`;
+        document.getElementById(`pump-${pumpId}-manual-speed`).textContent = `${pump.speedPct}%`;
         // Update toggle button state immediately for responsiveness
         updatePumpToggleButton(pumpId);
         updatePumpSchematic(pump);
@@ -997,27 +1026,115 @@
       }
 
 
+      // --- SLIDER CONTROL FUNCTIONS ---
+      
+      function validateSliderValue(pumpId, value) {
+        // Check if we're in REMOTE mode and enforce minimum
+        const minValue = STATE.currentMode === 'REMOTE' ? CONFIG.MIN_SPEED_REMOTE : 70;
+        const numValue = parseInt(value);
+        
+        if (numValue > 0 && numValue < minValue) {
+          // Snap back to minimum value
+          const slider = document.querySelector(`#manual-control-section input[type="range"][onchange*="setManualSpeed(${pumpId},"]`);
+          if (slider) {
+            slider.value = minValue;
+            // Update display immediately
+            document.getElementById(`pump-${pumpId}-manual-speed`).textContent = `${minValue}%`;
+            // Show brief feedback
+            showSliderSnapFeedback(pumpId, minValue);
+          }
+          return minValue;
+        }
+        return numValue;
+      }
+      
+      function showSliderSnapFeedback(pumpId, minValue) {
+        // Brief visual feedback when slider snaps back
+        const display = document.getElementById(`pump-${pumpId}-manual-speed`);
+        const slider = document.querySelector(`#manual-control-section input[type="range"][onchange*="setManualSpeed(${pumpId},"]`);
+        
+        if (display && slider) {
+          // Add visual feedback to both display and slider
+          display.classList.add('text-yellow-600', 'font-bold', 'slider-snap-feedback');
+          slider.classList.add('slider-snap-feedback');
+          
+          // Show brief tooltip-like message
+          const container = display.parentElement;
+          const tooltip = document.createElement('div');
+          tooltip.className = 'absolute -top-8 left-0 bg-yellow-500 text-white text-xs px-2 py-1 rounded shadow-lg z-10';
+          tooltip.textContent = `Min ${minValue}%`;
+          container.style.position = 'relative';
+          container.appendChild(tooltip);
+          
+          setTimeout(() => {
+            display.classList.remove('text-yellow-600', 'font-bold', 'slider-snap-feedback');
+            slider.classList.remove('slider-snap-feedback');
+            if (tooltip.parentElement) {
+              tooltip.parentElement.removeChild(tooltip);
+            }
+          }, 1000);
+        }
+      }
+      
+      function updateSliderLimits() {
+        // Set minimum slider values based on current mode
+        const minValue = STATE.currentMode === 'REMOTE' ? CONFIG.MIN_SPEED_REMOTE : 0;
+        
+        // Update all pump sliders
+        for (let i = 1; i <= 3; i++) {
+          const slider = document.querySelector(`#manual-control-section input[type="range"][onchange*="setManualSpeed(${i},"]`);
+          if (slider) {
+            slider.min = minValue;
+            
+            // Add input event listener for real-time validation
+            slider.removeEventListener('input', slider.snapBackHandler); // Remove existing listener
+            slider.snapBackHandler = function(event) {
+              const correctedValue = validateSliderValue(i, event.target.value);
+              if (correctedValue !== parseInt(event.target.value)) {
+                event.target.value = correctedValue;
+              }
+            };
+            slider.addEventListener('input', slider.snapBackHandler);
+            
+            // If current value is below new minimum, adjust it
+            if (parseInt(slider.value) > 0 && parseInt(slider.value) < minValue) {
+              slider.value = minValue;
+              // Update the pump state and display
+              const pump = STATE.pumps[i - 1];
+              if (pump.isRunning) {
+                pump.speedPct = minValue;
+                document.getElementById(`pump-${i}-manual-speed`).textContent = `${minValue}%`;
+              }
+            }
+          }
+        }
+      }
+
       // --- DATA SIMULATION & RENDERING ---
 
       // Simulasi Algoritma Kontrol (PID/Staging Mock)
       function runControlAlgorithm() {
         let requiredFlow = STATE.systemSetpoint;
 
-        // 1. Staging Logic (simplified)
-        const maxPumps = requiredFlow > 350 ? 3 : (requiredFlow > 180 ? 2 : (requiredFlow > 0 ? 1 : 0));
+        // 1. Staging Logic (simplified) - Based on 50 L/s per pump
+        const maxPumps = requiredFlow > 100 ? 3 : (requiredFlow > 50 ? 2 : (requiredFlow > 0 ? 1 : 0));
 
         // 2. Speed Control Logic (Simplified Load Sharing)
         let pumpCount = 0;
         if (requiredFlow > 0 && STATE.currentMode === 'AUTO') {
           pumpCount = Math.min(maxPumps, 3);
           // Calculate ideal speed per active pump
-            const idealSpeed = Math.min(100, Math.ceil((requiredFlow / pumpCount) / (CONFIG.MAX_DEBIT / 3) * 100));
+            const idealSpeed = Math.min(100, Math.ceil((requiredFlow / pumpCount) / CONFIG.MAX_DEBIT_PER_PUMP * 100));
+            
+            // Apply minimum speed for cooling fan requirement in REMOTE system
+            const minSpeed = CONFIG.MIN_SPEED_REMOTE; // 70% minimum for cooling fan
+            const finalSpeed = Math.max(idealSpeed, minSpeed);
 
           // Set running state and speed based on the algorithm
           for (let i = 0; i < STATE.pumps.length; i++) {
             if (i < pumpCount) {
               STATE.pumps[i].isRunning = true;
-              STATE.pumps[i].speedPct = idealSpeed;
+              STATE.pumps[i].speedPct = finalSpeed;
             } else {
               STATE.pumps[i].isRunning = false;
               STATE.pumps[i].speedPct = 0;
@@ -1026,8 +1143,13 @@
         }
 
         // 3. Flowmeter Calculation
-        let totalSpeed = STATE.pumps.reduce((sum, p) => sum + (p.isRunning ? p.speedPct : 0), 0);
-        STATE.flowmeter.debit = (totalSpeed / 300) * CONFIG.MAX_DEBIT; // Max 300% speed total (3x 100%)
+        let totalFlow = 0;
+        STATE.pumps.forEach(p => {
+          if (p.isRunning) {
+            totalFlow += (p.speedPct / 100) * CONFIG.MAX_DEBIT_PER_PUMP;
+          }
+        });
+        STATE.flowmeter.debit = totalFlow;
 
         // 4. Totalizer Accumulation (Simulasi 1 detik)
         STATE.flowmeter.totalizer += (STATE.flowmeter.debit * (1 / 3600)); // L/s ke m³/jam
@@ -1054,11 +1176,6 @@
           }
         });
 
-        // Simulasi Level Air (Level turun jika debit tinggi)
-        const flowFactor = STATE.flowmeter.debit / CONFIG.MAX_DEBIT;
-        STATE.level = (STATE.level - (flowFactor * 0.01) + 0.005).toFixed(2); // Fluktuasi kecil
-        if (STATE.level < 1.0) STATE.level = 1.0; // Batas Bawah
-        if (STATE.level > 4.0) STATE.level = 4.0; // Batas Atas
         
         // Rekam sampel flow secara periodik
         recordFlowSample();
@@ -1071,8 +1188,13 @@
 
     // Recalculate flow immediately from current pump speeds (used for MANUAL)
     function recalcFlowFromPumps() {
-        const totalSpeed = STATE.pumps.reduce((sum, p) => sum + (p.isRunning ? p.speedPct : 0), 0);
-        STATE.flowmeter.debit = (totalSpeed / 300) * CONFIG.MAX_DEBIT;
+        let totalFlow = 0;
+        STATE.pumps.forEach(p => {
+          if (p.isRunning) {
+            totalFlow += (p.speedPct / 100) * CONFIG.MAX_DEBIT_PER_PUMP;
+          }
+        });
+        STATE.flowmeter.debit = totalFlow;
     }
 
       // Pengecekan Alarm
@@ -1080,17 +1202,6 @@
         // Hanya hapus alarm non-faults untuk simulasi
         STATE.alarms = STATE.alarms.filter(a => a.priority === 'CRITICAL' && a.description.includes('Trip/Fault')); 
 
-        // Alarm 1: Level Air Kritis
-        if (STATE.level <= CONFIG.ALARM_THRESHOLD_LEVEL && !STATE.alarms.some(a => a.description.includes('Level air rendah'))) {
-            const desc = `Level air rendah (${STATE.level} m). Intake terancam kering!`;
-          STATE.alarms.push({
-            time: new Date().toLocaleTimeString(),
-                priority: 'CRITICAL',
-                description: desc,
-                acknowledged: false
-            });
-            recordEvent('CRITICAL', desc, 'RAISE');
-        }
 
         // Alarm 2: Debit Hampir Maksimal
         if (STATE.flowmeter.debit >= CONFIG.ALARM_THRESHOLD_DEBIT && !STATE.alarms.some(a => a.description.includes('Debit mendekati batas maksimal'))) {
@@ -1146,21 +1257,8 @@
 
         // --- Monitoring Cards ---
         document.getElementById('monitor-debit').textContent = `${STATE.flowmeter.debit.toFixed(1)} L/s`;
-        document.getElementById('monitor-level').textContent = `${STATE.level} m`;
         document.getElementById('monitor-totalizer').textContent = `${STATE.flowmeter.totalizer.toFixed(2)} m³`;
         document.getElementById('monitor-active-pumps').textContent = `${STATE.pumps.filter(p => p.isRunning).length} / 3`;
-
-        // Update Level card color
-        const levelCard = document.getElementById('monitor-level').parentElement;
-        levelCard.classList.remove('border-red-500', 'border-green-500', 'border-orange-500');
-        if (STATE.level <= CONFIG.ALARM_THRESHOLD_LEVEL + 0.5 && STATE.level > CONFIG.ALARM_THRESHOLD_LEVEL) {
-             levelCard.classList.add('border-orange-500'); // Warning
-        } else if (STATE.level <= CONFIG.ALARM_THRESHOLD_LEVEL) {
-            levelCard.classList.add('border-red-500'); // Critical
-        }
-        else {
-            levelCard.classList.add('border-green-500');
-        }
 
         // --- Schematic Visualization ---
         document.getElementById('flow-display-schematic').textContent = `${STATE.flowmeter.debit.toFixed(0)} L/s`;
@@ -1168,7 +1266,12 @@
         // --- Pump Details & Schematic ---
         STATE.pumps.forEach(p => {
           const freq = (p.speedPct / 100) * CONFIG.MAX_SPEED_HZ;
-            document.getElementById(`p${p.id}-speed`).textContent = `${p.speedPct}% (${freq.toFixed(1)} Hz)`;
+          const rpm = (p.speedPct / 100) * 2900; // Max RPM is 2900 at 100%
+            
+            // Update separate VFD monitoring elements
+            document.getElementById(`p${p.id}-speed-pct`).textContent = `${p.speedPct}%`;
+            document.getElementById(`p${p.id}-rpm`).textContent = `${Math.round(rpm)} rpm`;
+            document.getElementById(`p${p.id}-frequency`).textContent = `${freq.toFixed(1)} Hz`;
             document.getElementById(`p${p.id}-current`).textContent = `${p.currentA} A`;
 
           updatePumpSchematic(p);
@@ -1209,6 +1312,9 @@
         // Master Settings Link Visibility (Admin only)
         document.getElementById('nav-master_settings').classList.toggle('hidden', !isAdmin);
         document.querySelector('#mobile-menu option[value="master_settings"]').disabled = !isAdmin;
+        
+        // Update slider limits based on current mode
+        updateSliderLimits();
       }
 
       function updatePumpToggleButton(pumpId) {
@@ -1722,6 +1828,9 @@
         if (pumpPrev) pumpPrev.onclick = () => { if (pumpCurrentPage > 1) { pumpCurrentPage--; renderPumpLog(); } };
         if (pumpNext) pumpNext.onclick = () => { pumpCurrentPage++; renderPumpLog(); };
 
+        // Initialize slider limits
+        updateSliderLimits();
+        
         // Start the data simulation loop
         simulateData(); // Run once immediately
         window.dataInterval = setInterval(simulateData, 1000); // Run every second
