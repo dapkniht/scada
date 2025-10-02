@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Le easy SCADA INTAKE KBP</title>
+    <title>Le easy SCADA INTAKE</title>
     <!-- Favicon -->
     <link rel="icon" href="image//le-easy-logo.png" type="image/png" class="h-16 w-auto object-contain" />
     <!-- Load Tailwind CSS -->
@@ -11,6 +11,8 @@
     <!-- Load Lucide Icons for aesthetic icons -->
      
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Load Chart.js for data visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
       /* Mengatur font Inter */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
@@ -66,7 +68,7 @@
           />
 
           <h1 class="text-2xl font-extrabold text-blue-800">
-            SCADA KBP
+            SCADA
           </h1>
           <span
             class="ml-4 px-3 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800"
@@ -436,6 +438,22 @@
             <!-- Placeholder for Log History and Log Alarm pages -->
             <div id="page-log_pompa" class="page-content hidden">
                 <h2 class="text-2xl font-bold text-gray-800 mb-4">Log History Penggunaan Pompa</h2>
+                
+                <!-- CHART SECTION -->
+                <div class="bg-white p-4 md:p-6 rounded-xl shadow-lg mb-6">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">Grafik Performa Pompa</h3>
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <h4 class="text-md font-semibold text-gray-700 mb-2">Speed Pompa (%)</h4>
+                            <canvas id="pumpSpeedChart" width="400" height="200"></canvas>
+                        </div>
+                        <div>
+                            <h4 class="text-md font-semibold text-gray-700 mb-2">Arus Pompa (A)</h4>
+                            <canvas id="pumpCurrentChart" width="400" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="bg-white p-4 md:p-6 rounded-xl shadow-lg space-y-4">
                     <div class="grid md:grid-cols-6 gap-3">
                         <div>
@@ -532,6 +550,22 @@
             </div>
             <div id="page-log_flow" class="page-content hidden">
                 <h2 class="text-2xl font-bold text-gray-800 mb-4">Log History Totalizer Flowmeter</h2>
+                
+                <!-- CHART SECTION -->
+                <div class="bg-white p-4 md:p-6 rounded-xl shadow-lg mb-6">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">Grafik Debit & Totalizer</h3>
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <h4 class="text-md font-semibold text-gray-700 mb-2">Debit Air (L/s)</h4>
+                            <canvas id="flowDebitChart" width="400" height="200"></canvas>
+                        </div>
+                        <div>
+                            <h4 class="text-md font-semibold text-gray-700 mb-2">Totalizer (m³)</h4>
+                            <canvas id="flowTotalizerChart" width="400" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="bg-white p-4 md:p-6 rounded-xl shadow-lg space-y-4">
                     <div class="grid md:grid-cols-6 gap-3">
                         <div>
@@ -596,6 +630,22 @@
             </div>
             <div id="page-log_alarm" class="page-content hidden">
                 <h2 class="text-2xl font-bold text-gray-800 mb-4">Log Alarm & Events (Lengkap)</h2>
+                
+                <!-- CHART SECTION -->
+                <div class="bg-white p-4 md:p-6 rounded-xl shadow-lg mb-6">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">Grafik Alarm & Events</h3>
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <h4 class="text-md font-semibold text-gray-700 mb-2">Frekuensi Alarm per Prioritas</h4>
+                            <canvas id="alarmPriorityChart" width="400" height="200"></canvas>
+                        </div>
+                        <div>
+                            <h4 class="text-md font-semibold text-gray-700 mb-2">Timeline Events</h4>
+                            <canvas id="alarmTimelineChart" width="400" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="bg-white p-4 md:p-6 rounded-xl shadow-lg space-y-4">
                     <div class="grid md:grid-cols-5 gap-3">
                         <div>
@@ -697,7 +747,7 @@
     <!-- LOGIN PAGE -->
 <div id="login-page" class="flex items-center justify-center min-h-screen bg-gray-100" style="background-image:url('illustration.png'); background-size:cover; background-position:center;">
     <div class="bg-white/80 backdrop-blur-sm border border-white/40 p-8 rounded-xl shadow-2xl w-full max-w-md">
-        <h2 class="text-3xl font-bold text-center text-blue-700 mb-6">Login SCADA KBP</h2>
+        <h2 class="text-3xl font-bold text-center text-blue-700 mb-6">Demo SCADA Le easy</h2>
         <div class="mb-4">
             <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
             <input type="text" id="username" class="mt-1 w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="admin, operator, atau viewer">
@@ -865,10 +915,13 @@
         // Refresh log pages on navigation
         if (pageId === 'log_alarm') {
             renderAlarmLog();
+            setTimeout(() => createAlarmCharts(), 100); // Delay to ensure DOM is ready
         } else if (pageId === 'log_flow') {
             renderFlowLog();
+            setTimeout(() => createFlowCharts(), 100); // Delay to ensure DOM is ready
         } else if (pageId === 'log_pompa') {
             renderPumpLog();
+            setTimeout(() => createPumpCharts(), 100); // Delay to ensure DOM is ready
         }
       }
 
@@ -1757,6 +1810,316 @@
     }
 
 
+      // --- CHART MANAGEMENT ---
+      
+      let charts = {
+        pumpSpeed: null,
+        pumpCurrent: null,
+        flowDebit: null,
+        flowTotalizer: null,
+        alarmPriority: null,
+        alarmTimeline: null
+      };
+      
+      function createPumpCharts() {
+        const filtered = applyPumpFilters(STATE.pumpHistory);
+        const last24Hours = filtered.slice(0, 24); // Last 24 data points
+        
+        // Prepare data for pump speed chart
+        const speedData = {
+          labels: last24Hours.map(item => new Date(item.timeISO).toLocaleTimeString()),
+          datasets: [
+            {
+              label: 'Pompa 1',
+              data: last24Hours.filter(item => item.pumpId === 1).map(item => item.speedPct),
+              borderColor: 'rgb(59, 130, 246)',
+              backgroundColor: 'rgba(59, 130, 246, 0.1)',
+              tension: 0.1
+            },
+            {
+              label: 'Pompa 2',
+              data: last24Hours.filter(item => item.pumpId === 2).map(item => item.speedPct),
+              borderColor: 'rgb(16, 185, 129)',
+              backgroundColor: 'rgba(16, 185, 129, 0.1)',
+              tension: 0.1
+            },
+            {
+              label: 'Pompa 3',
+              data: last24Hours.filter(item => item.pumpId === 3).map(item => item.speedPct),
+              borderColor: 'rgb(245, 158, 11)',
+              backgroundColor: 'rgba(245, 158, 11, 0.1)',
+              tension: 0.1
+            }
+          ]
+        };
+        
+        // Prepare data for pump current chart
+        const currentData = {
+          labels: last24Hours.map(item => new Date(item.timeISO).toLocaleTimeString()),
+          datasets: [
+            {
+              label: 'Pompa 1',
+              data: last24Hours.filter(item => item.pumpId === 1).map(item => item.currentA),
+              borderColor: 'rgb(59, 130, 246)',
+              backgroundColor: 'rgba(59, 130, 246, 0.1)',
+              tension: 0.1
+            },
+            {
+              label: 'Pompa 2',
+              data: last24Hours.filter(item => item.pumpId === 2).map(item => item.currentA),
+              borderColor: 'rgb(16, 185, 129)',
+              backgroundColor: 'rgba(16, 185, 129, 0.1)',
+              tension: 0.1
+            },
+            {
+              label: 'Pompa 3',
+              data: last24Hours.filter(item => item.pumpId === 3).map(item => item.currentA),
+              borderColor: 'rgb(245, 158, 11)',
+              backgroundColor: 'rgba(245, 158, 11, 0.1)',
+              tension: 0.1
+            }
+          ]
+        };
+        
+        // Destroy existing charts
+        if (charts.pumpSpeed) charts.pumpSpeed.destroy();
+        if (charts.pumpCurrent) charts.pumpCurrent.destroy();
+        
+        // Create speed chart
+        const speedCtx = document.getElementById('pumpSpeedChart');
+        if (speedCtx) {
+          charts.pumpSpeed = new Chart(speedCtx, {
+            type: 'line',
+            data: speedData,
+            options: {
+              responsive: true,
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  max: 100,
+                  title: {
+                    display: true,
+                    text: 'Speed (%)'
+                  }
+                }
+              },
+              plugins: {
+                legend: {
+                  position: 'top'
+                }
+              }
+            }
+          });
+        }
+        
+        // Create current chart
+        const currentCtx = document.getElementById('pumpCurrentChart');
+        if (currentCtx) {
+          charts.pumpCurrent = new Chart(currentCtx, {
+            type: 'line',
+            data: currentData,
+            options: {
+              responsive: true,
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  title: {
+                    display: true,
+                    text: 'Arus (A)'
+                  }
+                }
+              },
+              plugins: {
+                legend: {
+                  position: 'top'
+                }
+              }
+            }
+          });
+        }
+      }
+      
+      function createFlowCharts() {
+        const filtered = applyFlowFilters(STATE.flowHistory);
+        const last24Hours = filtered.slice(0, 24); // Last 24 data points
+        
+        // Prepare data for debit chart
+        const debitData = {
+          labels: last24Hours.map(item => new Date(item.timeISO).toLocaleTimeString()),
+          datasets: [{
+            label: 'Debit Air',
+            data: last24Hours.map(item => item.debit),
+            borderColor: 'rgb(59, 130, 246)',
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            tension: 0.1,
+            fill: true
+          }]
+        };
+        
+        // Prepare data for totalizer chart
+        const totalizerData = {
+          labels: last24Hours.map(item => new Date(item.timeISO).toLocaleTimeString()),
+          datasets: [{
+            label: 'Totalizer',
+            data: last24Hours.map(item => item.totalizer),
+            borderColor: 'rgb(16, 185, 129)',
+            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            tension: 0.1,
+            fill: true
+          }]
+        };
+        
+        // Destroy existing charts
+        if (charts.flowDebit) charts.flowDebit.destroy();
+        if (charts.flowTotalizer) charts.flowTotalizer.destroy();
+        
+        // Create debit chart
+        const debitCtx = document.getElementById('flowDebitChart');
+        if (debitCtx) {
+          charts.flowDebit = new Chart(debitCtx, {
+            type: 'line',
+            data: debitData,
+            options: {
+              responsive: true,
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  title: {
+                    display: true,
+                    text: 'Debit (L/s)'
+                  }
+                }
+              },
+              plugins: {
+                legend: {
+                  position: 'top'
+                }
+              }
+            }
+          });
+        }
+        
+        // Create totalizer chart
+        const totalizerCtx = document.getElementById('flowTotalizerChart');
+        if (totalizerCtx) {
+          charts.flowTotalizer = new Chart(totalizerCtx, {
+            type: 'line',
+            data: totalizerData,
+            options: {
+              responsive: true,
+              scales: {
+                y: {
+                  beginAtZero: false,
+                  title: {
+                    display: true,
+                    text: 'Totalizer (m³)'
+                  }
+                }
+              },
+              plugins: {
+                legend: {
+                  position: 'top'
+                }
+              }
+            }
+          });
+        }
+      }
+      
+      function createAlarmCharts() {
+        const filtered = applyLogFilters(STATE.alarmHistory);
+        
+        // Count alarms by priority
+        const priorityCount = filtered.reduce((acc, item) => {
+          acc[item.priority] = (acc[item.priority] || 0) + 1;
+          return acc;
+        }, {});
+        
+        // Count events by type
+        const eventCount = filtered.reduce((acc, item) => {
+          acc[item.event] = (acc[item.event] || 0) + 1;
+          return acc;
+        }, {});
+        
+        // Prepare priority chart data
+        const priorityData = {
+          labels: Object.keys(priorityCount),
+          datasets: [{
+            data: Object.values(priorityCount),
+            backgroundColor: [
+              'rgba(239, 68, 68, 0.8)',   // CRITICAL - Red
+              'rgba(245, 158, 11, 0.8)',  // WARNING - Orange
+              'rgba(59, 130, 246, 0.8)'   // INFO - Blue
+            ],
+            borderColor: [
+              'rgb(239, 68, 68)',
+              'rgb(245, 158, 11)',
+              'rgb(59, 130, 246)'
+            ],
+            borderWidth: 1
+          }]
+        };
+        
+        // Prepare timeline chart data
+        const timelineData = {
+          labels: Object.keys(eventCount),
+          datasets: [{
+            label: 'Jumlah Events',
+            data: Object.values(eventCount),
+            backgroundColor: 'rgba(16, 185, 129, 0.8)',
+            borderColor: 'rgb(16, 185, 129)',
+            borderWidth: 1
+          }]
+        };
+        
+        // Destroy existing charts
+        if (charts.alarmPriority) charts.alarmPriority.destroy();
+        if (charts.alarmTimeline) charts.alarmTimeline.destroy();
+        
+        // Create priority chart
+        const priorityCtx = document.getElementById('alarmPriorityChart');
+        if (priorityCtx) {
+          charts.alarmPriority = new Chart(priorityCtx, {
+            type: 'doughnut',
+            data: priorityData,
+            options: {
+              responsive: true,
+              plugins: {
+                legend: {
+                  position: 'bottom'
+                }
+              }
+            }
+          });
+        }
+        
+        // Create timeline chart
+        const timelineCtx = document.getElementById('alarmTimelineChart');
+        if (timelineCtx) {
+          charts.alarmTimeline = new Chart(timelineCtx, {
+            type: 'bar',
+            data: timelineData,
+            options: {
+              responsive: true,
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  title: {
+                    display: true,
+                    text: 'Jumlah Events'
+                  }
+                }
+              },
+              plugins: {
+                legend: {
+                  position: 'top'
+                }
+              }
+            }
+          });
+        }
+      }
+
       // --- INITIALIZATION ---
 
       function initializeApp() {
@@ -1798,8 +2161,8 @@
         const logExportBtn = document.getElementById('log-export');
         const logPrev = document.getElementById('log-prev');
         const logNext = document.getElementById('log-next');
-        if (logApply) logApply.onclick = () => { logCurrentPage = 1; renderAlarmLog(); };
-        if (logResetBtn) logResetBtn.onclick = () => resetLogFilters();
+        if (logApply) logApply.onclick = () => { logCurrentPage = 1; renderAlarmLog(); createAlarmCharts(); };
+        if (logResetBtn) logResetBtn.onclick = () => { resetLogFilters(); createAlarmCharts(); };
         if (logExportBtn) logExportBtn.onclick = () => exportAlarmLogCSV();
         if (logPrev) logPrev.onclick = () => { if (logCurrentPage > 1) { logCurrentPage--; renderAlarmLog(); } };
         if (logNext) logNext.onclick = () => { logCurrentPage++; renderAlarmLog(); };
@@ -1810,8 +2173,8 @@
         const flowExportBtn = document.getElementById('flow-export');
         const flowPrev = document.getElementById('flow-prev');
         const flowNext = document.getElementById('flow-next');
-        if (flowApply) flowApply.onclick = () => { flowCurrentPage = 1; renderFlowLog(); };
-        if (flowResetBtn) flowResetBtn.onclick = () => resetFlowFilters();
+        if (flowApply) flowApply.onclick = () => { flowCurrentPage = 1; renderFlowLog(); createFlowCharts(); };
+        if (flowResetBtn) flowResetBtn.onclick = () => { resetFlowFilters(); createFlowCharts(); };
         if (flowExportBtn) flowExportBtn.onclick = () => exportFlowLogCSV();
         if (flowPrev) flowPrev.onclick = () => { if (flowCurrentPage > 1) { flowCurrentPage--; renderFlowLog(); } };
         if (flowNext) flowNext.onclick = () => { flowCurrentPage++; renderFlowLog(); };
@@ -1822,8 +2185,8 @@
         const pumpExportBtn = document.getElementById('pump-export');
         const pumpPrev = document.getElementById('pump-prev');
         const pumpNext = document.getElementById('pump-next');
-        if (pumpApply) pumpApply.onclick = () => { pumpCurrentPage = 1; renderPumpLog(); };
-        if (pumpResetBtn) pumpResetBtn.onclick = () => resetPumpFilters();
+        if (pumpApply) pumpApply.onclick = () => { pumpCurrentPage = 1; renderPumpLog(); createPumpCharts(); };
+        if (pumpResetBtn) pumpResetBtn.onclick = () => { resetPumpFilters(); createPumpCharts(); };
         if (pumpExportBtn) pumpExportBtn.onclick = () => exportPumpLogCSV();
         if (pumpPrev) pumpPrev.onclick = () => { if (pumpCurrentPage > 1) { pumpCurrentPage--; renderPumpLog(); } };
         if (pumpNext) pumpNext.onclick = () => { pumpCurrentPage++; renderPumpLog(); };
