@@ -399,6 +399,41 @@
                     <i data-lucide="lock" class="w-6 h-6 mr-2 text-red-600"></i> Master Settings (Algoritma & Threshold)
               </h2>
               <div id="settings-content" class="space-y-6">
+        <!-- AUTO DEFAULT PRIORITY SETTINGS -->
+        <div class="bg-white p-6 rounded-xl shadow-lg mb-6">
+                <h3 class="text-xl font-bold text-blue-700 mb-4">Prioritas Pompa Aktif Default (Mode AUTO)</h3>
+          <p class="text-sm text-gray-600 mb-3">Urutkan prioritas pompa 1-3 (tanpa duplikasi). Sistem akan mengaktifkan sesuai urutan ini ketika mode AUTO.</p>
+          <div class="grid md:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Prioritas #1</label>
+              <select id="prio-1" class="w-full p-2 border rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">
+                <option value="1">Pompa 1</option>
+                <option value="2">Pompa 2</option>
+                <option value="3">Pompa 3</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Prioritas #2</label>
+              <select id="prio-2" class="w-full p-2 border rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">
+                <option value="1">Pompa 1</option>
+                <option value="2">Pompa 2</option>
+                <option value="3">Pompa 3</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Prioritas #3</label>
+              <select id="prio-3" class="w-full p-2 border rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">
+                <option value="1">Pompa 1</option>
+                <option value="2">Pompa 2</option>
+                <option value="3">Pompa 3</option>
+              </select>
+            </div>
+          </div>
+          <div class="flex gap-3 mt-4">
+            <button id="save-priority" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Simpan Prioritas</button>
+            <span id="priority-hint" class="text-sm text-gray-500"></span>
+          </div>
+        </div>
                 <!-- MASTER STAGING TABLE -->
                 <div class="bg-white p-6 rounded-xl shadow-lg mb-6">
                         <h3 class="text-xl font-bold text-blue-700 mb-4">Master Staging Algoritma Pompa (Kontrol Debit)</h3>
@@ -791,6 +826,7 @@
         MAX_DEBIT_SYSTEM: 150, // L/s total system (3 pumps x 50 L/s)
         ALARM_THRESHOLD_DEBIT: 140, // L/s (adjusted for new system capacity)
         MIN_SPEED_REMOTE: 70, // Minimum speed 70% for REMOTE mode (cooling fan requirement)
+        AUTO_PRIORITY: [1,2,3], // default pump order
       };
 
       let STATE = {
@@ -1202,15 +1238,17 @@
             const minSpeed = CONFIG.MIN_SPEED_REMOTE; // 70% minimum for cooling fan
             const finalSpeed = Math.max(idealSpeed, minSpeed);
 
-          // Set running state and speed based on the algorithm
-          for (let i = 0; i < STATE.pumps.length; i++) {
-            if (i < pumpCount) {
-              STATE.pumps[i].isRunning = true;
-              STATE.pumps[i].speedPct = finalSpeed;
-            } else {
-              STATE.pumps[i].isRunning = false;
-              STATE.pumps[i].speedPct = 0;
-            }
+          // Set running state and speed based on priority order
+          const order = (STATE.autoPriority && STATE.autoPriority.length === 3)
+            ? STATE.autoPriority
+            : (JSON.parse(localStorage.getItem('scada_auto_priority') || 'null') || CONFIG.AUTO_PRIORITY);
+          // Reset all first
+          STATE.pumps.forEach(p => { p.isRunning = false; p.speedPct = 0; });
+          // Activate according to priority
+          for (let idx = 0; idx < pumpCount; idx++) {
+            const pumpId = order[idx];
+            const p = STATE.pumps[pumpId - 1];
+            if (p) { p.isRunning = true; p.speedPct = finalSpeed; }
           }
         }
 
@@ -1384,6 +1422,11 @@
         // Master Settings Link Visibility (Admin only)
         document.getElementById('nav-master_settings').classList.toggle('hidden', !isAdmin);
         document.querySelector('#mobile-menu option[value="master_settings"]').disabled = !isAdmin;
+        // Disable priority controls for non-admin on the page
+        ['prio-1','prio-2','prio-3','save-priority'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) { el.disabled = !isAdmin; el.classList.toggle('opacity-50', !isAdmin); el.classList.toggle('cursor-not-allowed', !isAdmin); }
+        });
         
         // Update slider limits based on current mode
         updateSliderLimits();
@@ -2206,6 +2249,31 @@
         if (pumpExportBtn) pumpExportBtn.onclick = () => exportPumpLogCSV();
         if (pumpPrev) pumpPrev.onclick = () => { if (pumpCurrentPage > 1) { pumpCurrentPage--; renderPumpLog(); } };
         if (pumpNext) pumpNext.onclick = () => { pumpCurrentPage++; renderPumpLog(); };
+
+        // Admin-only: bind priority UI
+        const savePriorityBtn = document.getElementById('save-priority');
+        if (savePriorityBtn) {
+            savePriorityBtn.onclick = () => {
+                if (!hasPermission('ADMIN')) { showAlertModal('Akses Ditolak', 'Hanya Admin yang dapat menyimpan prioritas.'); return; }
+                const p1 = parseInt(document.getElementById('prio-1').value);
+                const p2 = parseInt(document.getElementById('prio-2').value);
+                const p3 = parseInt(document.getElementById('prio-3').value);
+                const set = new Set([p1,p2,p3]);
+                if (set.size !== 3) { showAlertModal('Input Invalid', 'Prioritas tidak boleh duplikat.'); return; }
+                const order = [p1,p2,p3];
+                STATE.autoPriority = order;
+                localStorage.setItem('scada_auto_priority', JSON.stringify(order));
+                document.getElementById('priority-hint').textContent = `Disimpan: ${order.join(' → ')}`;
+            };
+        }
+
+        // Load saved priority into UI
+        const savedOrder = JSON.parse(localStorage.getItem('scada_auto_priority') || 'null') || CONFIG.AUTO_PRIORITY;
+        STATE.autoPriority = savedOrder;
+        const pr1 = document.getElementById('prio-1');
+        const pr2 = document.getElementById('prio-2');
+        const pr3 = document.getElementById('prio-3');
+        if (pr1 && pr2 && pr3) { pr1.value = savedOrder[0]; pr2.value = savedOrder[1]; pr3.value = savedOrder[2]; }
 
         // Initialize slider limits
         updateSliderLimits();
