@@ -48,6 +48,24 @@
             0% { background-color: #fbbf24; transform: scale(1.1); }
             100% { background-color: transparent; transform: scale(1); }
       }
+      /* Pump image styling */
+      .pump-image {
+        transition: all 0.3s ease;
+      }
+      .pump-image.status-running {
+        animation: pump-running 2s infinite;
+      }
+      .pump-image.status-trip {
+        animation: pump-trip 0.5s infinite;
+      }
+      @keyframes pump-running {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+      }
+      @keyframes pump-trip {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+      }
     </style>
   </head>
   <body class="min-h-screen">
@@ -165,16 +183,16 @@
 
                       <!-- Pompa (3 Unit) -->
                                 <g id="pump-1" transform="translate(200, 230)" class="transition-all duration-300">
-                                    <circle cx="0" cy="0" r="20" fill="#fefefe" stroke="#007bff" stroke-width="2"/>
-                                    <text x="0" y="5" text-anchor="middle" class="text-xs font-bold fill-gray-800">P1</text>
+                                    <image href="./image/pompa.png" x="-25" y="-25" width="50" height="50" class="pump-image"/>
+                                    <text x="0" y="35" text-anchor="middle" class="text-xs font-bold fill-gray-800">P1</text>
                                 </g>
                                 <g id="pump-2" transform="translate(200, 150)" class="transition-all duration-300">
-                                    <circle cx="0" cy="0" r="20" fill="#fefefe" stroke="#007bff" stroke-width="2"/>
-                                    <text x="0" y="5" text-anchor="middle" class="text-xs font-bold fill-gray-800">P2</text>
+                                    <image href="./image/pompa.png" x="-25" y="-25" width="50" height="50" class="pump-image"/>
+                                    <text x="0" y="35" text-anchor="middle" class="text-xs font-bold fill-gray-800">P2</text>
                                 </g>
                                 <g id="pump-3" transform="translate(200, 70)" class="transition-all duration-300">
-                                    <circle cx="0" cy="0" r="20" fill="#fefefe" stroke="#007bff" stroke-width="2"/>
-                                    <text x="0" y="5" text-anchor="middle" class="text-xs font-bold fill-gray-800">P3</text>
+                                    <image href="./image/pompa.png" x="-25" y="-25" width="50" height="50" class="pump-image"/>
+                                    <text x="0" y="35" text-anchor="middle" class="text-xs font-bold fill-gray-800">P3</text>
                       </g>
 
                       <!-- Pipa Intake ke Header -->
@@ -1388,27 +1406,24 @@
       function updatePumpSchematic(p) {
         const pumpElement = document.getElementById(`pump-${p.id}`);
         const pipeElement = document.getElementById(`pipe-${p.id}`);
-        const circle = pumpElement.querySelector('circle');
+        const image = pumpElement.querySelector('image');
         const text = pumpElement.querySelector('text');
 
         // Reset classes
-        circle.classList.remove('status-running', 'status-trip');
+        image.classList.remove('status-running', 'status-trip');
         pipeElement.setAttribute('stroke', '#6c757d');
 
         if (p.fault) {
-            circle.classList.add('status-trip');
-            circle.setAttribute('fill', '#ef4444');
-            circle.setAttribute('stroke', '#b91c1c');
+            image.classList.add('status-trip');
+            image.style.filter = 'hue-rotate(0deg) saturate(2) brightness(0.8)'; // Red tint
             text.textContent = 'TRIP';
         } else if (p.isRunning) {
-            circle.classList.add('status-running');
-            circle.setAttribute('fill', '#22c55e');
-            circle.setAttribute('stroke', '#16a34a');
+            image.classList.add('status-running');
+            image.style.filter = 'hue-rotate(120deg) saturate(1.5) brightness(1.1)'; // Green tint
             pipeElement.setAttribute('stroke', '#22c55e'); // Green flow
           text.textContent = `${p.speedPct}%`;
         } else {
-            circle.setAttribute('fill', '#fefefe');
-            circle.setAttribute('stroke', '#007bff');
+            image.style.filter = 'grayscale(0.3) brightness(0.9)'; // Slightly dimmed
             text.textContent = 'STOP';
         }
       }
