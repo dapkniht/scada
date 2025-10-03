@@ -768,7 +768,7 @@
         <h2 class="text-3xl font-bold text-center text-blue-700 mb-6">Demo SCADA Le easy</h2>
         <div class="mb-4">
             <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
-            <input type="text" id="username" class="mt-1 w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="admin, operator, atau viewer">
+            <input type="text" id="username" class="mt-1 w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="admin, spv, atau tamu">
         </div>
         <div class="mb-6">
             <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
@@ -777,7 +777,7 @@
         <button onclick="login()" class="w-full py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition duration-300">
           Login
         </button>
-        <p class="text-center text-sm text-gray-500 mt-4">Demo: Admin/123, Operator/123, atau Viewer/123</p>
+        <p class="text-center text-sm text-gray-500 mt-4">Demo: Admin/123, SPV/123, atau Tamu/123</p>
       </div>
     </div>
 
@@ -793,7 +793,7 @@
       };
 
       let STATE = {
-        user: null, // 'ADMIN', 'OPERATOR', 'VIEWER'
+        user: null, // 'ADMIN', 'SPV', 'TAMU'
         currentMode: 'REMOTE',
         systemSetpoint: 100, // L/s Target Debit (within new system capacity)
         pumps: [
@@ -849,7 +849,7 @@
       // Role-Based Access Control (RBAC) Checker
       function hasPermission(minRole) {
         if (!STATE.user) return false;
-        const roles = { 'VIEWER': 1, 'OPERATOR': 2, 'ADMIN': 3 };
+        const roles = { 'TAMU': 1, 'SPV': 2, 'ADMIN': 3 };
 
         // Cek jika role user saat ini memiliki level akses yang sama atau lebih tinggi dari yang diminta
         return roles[STATE.user] >= roles[minRole];
@@ -868,10 +868,10 @@
 
         if (username === 'admin') {
             STATE.user = 'ADMIN';
-        } else if (username === 'operator') {
-            STATE.user = 'OPERATOR';
-        } else if (username === 'viewer') {
-            STATE.user = 'VIEWER';
+        } else if (username === 'spv') {
+            STATE.user = 'SPV';
+        } else if (username === 'tamu') {
+            STATE.user = 'TAMU';
         } else {
             showAlertModal('Gagal Login', 'Username tidak dikenal.');
           return;
@@ -943,10 +943,10 @@
         }
       }
 
-      // --- COMMANDING & CONTROLLING MOCK (OPERATOR & ADMIN) ---
+      // --- COMMANDING & CONTROLLING MOCK (SPV & ADMIN) ---
 
       function setMode(mode) {
-        if (!hasPermission('OPERATOR')) {
+        if (!hasPermission('SPV')) {
             showAlertModal('Akses Ditolak', 'Anda tidak memiliki izin untuk mengganti mode operasi.');
           return;
         }
@@ -1019,7 +1019,7 @@
       }
 
       function setSystemSetpoint() {
-        if (!hasPermission('OPERATOR')) {
+        if (!hasPermission('SPV')) {
             showAlertModal('Akses Ditolak', 'Anda tidak memiliki izin untuk mengubah Setpoint Debit.');
           return;
         }
@@ -1319,7 +1319,7 @@
 
       // Update UI Elements
       function updateUI() {
-        const isOperator = hasPermission('OPERATOR');
+        const isOperator = hasPermission('SPV');
         const isAdmin = hasPermission('ADMIN');
         const isManualMode = STATE.currentMode === 'MANUAL';
 
@@ -1355,12 +1355,12 @@
 
         // --- RBAC & Control Panel Visibility ---
 
-        // Mode Control buttons (Operator/Admin)
+        // Mode Control buttons (SPV/Admin)
         document.querySelectorAll('#control-mode-panel button').forEach(el => {
             el.disabled = !isOperator;
           });
 
-        // Setpoint Control (Operator/Admin) - only active in AUTO mode
+        // Setpoint Control (SPV/Admin) - only active in AUTO mode
         const setpointInput = document.getElementById('target-debit');
         const setpointBtn = document.getElementById('setpoint-btn');
         if (setpointInput) setpointInput.disabled = !(isOperator && STATE.currentMode === 'AUTO');
@@ -1447,7 +1447,7 @@
       function renderAlarms() {
         const listContainer = document.getElementById('alarm-list');
         const countSpan = document.getElementById('alarm-count');
-        const canAcknowledge = hasPermission('OPERATOR');
+        const canAcknowledge = hasPermission('SPV');
         
         listContainer.innerHTML = '';
 
@@ -1493,7 +1493,7 @@
       }
 
       function acknowledgeAlarm(index) {
-        if (!hasPermission('OPERATOR')) {
+        if (!hasPermission('SPV')) {
             showAlertModal('Akses Ditolak', 'Anda tidak memiliki izin untuk melakukan Acknowledge Alarm.');
           return;
         }
