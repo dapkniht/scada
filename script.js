@@ -67,7 +67,7 @@ function hideAlertModal() {
 // Role-Based Access Control (RBAC) Checker
 function hasPermission(minRole) {
   if (!STATE.user) return false;
-  const roles = { 'TAMU': 1, 'SPV': 2, 'ADMIN': 3 };
+  const roles = { 'TAMU': 1, 'ADMIN': 2, 'SPV': 3 };
 
   // Cek jika role user saat ini memiliki level akses yang sama atau lebih tinggi dari yang diminta
   return roles[STATE.user] >= roles[minRole];
@@ -129,10 +129,10 @@ function checkAuth() {
 
 function showPage(pageId) {
   // Pengecekan Akses untuk halaman Master Settings
-  if (pageId === 'master_settings' && !hasPermission('ADMIN')) {
-      showAlertModal('Akses Ditolak', 'Halaman Master Settings hanya dapat diakses oleh Admin.');
+  if (pageId === 'master_settings' && !hasPermission('SPV')) {
+    showAlertModal('Akses Ditolak', 'Halaman Master Settings hanya dapat diakses oleh SPV.');
     // Jika user tidak berhak, kembalikan ke dashboard
-      pageId = 'dashboard'; 
+    pageId = 'dashboard'; 
   }
 
   document.querySelectorAll('.page-content').forEach(p => p.classList.add('hidden'));
@@ -161,11 +161,11 @@ function showPage(pageId) {
   }
 }
 
-// --- COMMANDING & CONTROLLING MOCK (SPV & ADMIN) ---
+// --- COMMANDING & CONTROLLING MOCK (ADMIN & SPV) ---
 
 function setMode(mode) {
-  if (!hasPermission('SPV')) {
-      showAlertModal('Akses Ditolak', 'Anda tidak memiliki izin untuk mengganti mode operasi.');
+  if (!hasPermission('ADMIN')) {
+    showAlertModal('Akses Ditolak', 'Anda tidak memiliki izin untuk mengganti mode operasi.');
     return;
   }
 
@@ -237,8 +237,8 @@ function setMode(mode) {
 }
 
 function setSystemSetpoint() {
-  if (!hasPermission('SPV')) {
-      showAlertModal('Akses Ditolak', 'Anda tidak memiliki izin untuk mengubah Setpoint Debit.');
+  if (!hasPermission('ADMIN')) {
+    showAlertModal('Akses Ditolak', 'Anda tidak memiliki izin untuk mengubah Setpoint Debit.');
     return;
   }
   const setpoint = parseInt(document.getElementById('target-debit').value);
@@ -250,15 +250,15 @@ function setSystemSetpoint() {
   showAlertModal('Command Sukses', `Target Debit sistem diatur ke ${setpoint} L/s.`);
 }
 
-// --- MANUAL CONTROL (ADMIN ONLY) ---
+// --- MANUAL CONTROL (SPV ONLY) ---
 
 function togglePump(pumpId) {
   if (STATE.currentMode !== 'MANUAL') {
       showAlertModal('Gagal Command', 'Pompa hanya dapat dihidupkan/dimatikan di mode MANUAL.');
     return;
   }
-  if (!hasPermission('ADMIN')) {
-      showAlertModal('Akses Ditolak', 'Kontrol Pompa Manual hanya dapat dilakukan oleh Admin.');
+  if (!hasPermission('SPV')) {
+    showAlertModal('Akses Ditolak', 'Kontrol Pompa Manual hanya dapat dilakukan oleh SPV.');
     return;
   }
 
@@ -286,10 +286,10 @@ function togglePump(pumpId) {
 
 function setManualSpeed(pumpId, speed) {
   if (STATE.currentMode !== 'MANUAL') return;
-  if (!hasPermission('ADMIN')) {
-    // Jika bukan admin, reset slider value
-      document.querySelector(`#manual-control-section input[type="range"][onchange*="setManualSpeed(${pumpId},"]`).value = STATE.pumps[pumpId - 1].speedPct;
-      showAlertModal('Akses Ditolak', 'Pengaturan Speed Manual hanya dapat dilakukan oleh Admin.');
+  if (!hasPermission('SPV')) {
+    // Jika bukan SPV, reset slider value
+    document.querySelector(`#manual-control-section input[type="range"][onchange*="setManualSpeed(${pumpId},"]`).value = STATE.pumps[pumpId - 1].speedPct;
+    showAlertModal('Akses Ditolak', 'Pengaturan Speed Manual hanya dapat dilakukan oleh SPV.');
     return;
   }
 
@@ -539,8 +539,8 @@ function checkAlarms() {
 
 // Update UI Elements
 function updateUI() {
-  const isOperator = hasPermission('SPV');
-  const isAdmin = hasPermission('ADMIN');
+  const isOperator = hasPermission('ADMIN');
+  const isAdmin = hasPermission('SPV');
   const isManualMode = STATE.currentMode === 'MANUAL';
 
   // --- Global Info ---
@@ -600,10 +600,10 @@ function updateUI() {
       }
     });
 
-  // Master Settings Link Visibility (Admin only)
+  // Master Settings Link Visibility (SPV only)
   document.getElementById('nav-master_settings').classList.toggle('hidden', !isAdmin);
   document.querySelector('#mobile-menu option[value="master_settings"]').disabled = !isAdmin;
-  // Disable priority controls for non-admin on the page
+        // Disable priority controls for non-SPV on the page
   ['prio-1','prio-2','prio-3','save-priority'].forEach(id => {
       const el = document.getElementById(id);
       if (el) { el.disabled = !isAdmin; el.classList.toggle('opacity-50', !isAdmin); el.classList.toggle('cursor-not-allowed', !isAdmin); }
@@ -672,7 +672,7 @@ function updatePumpDetails(p) {
 function renderAlarms() {
   const listContainer = document.getElementById('alarm-list');
   const countSpan = document.getElementById('alarm-count');
-  const canAcknowledge = hasPermission('SPV');
+  const canAcknowledge = hasPermission('ADMIN');
   
   listContainer.innerHTML = '';
 
@@ -718,8 +718,8 @@ function renderAlarms() {
 }
 
 function acknowledgeAlarm(index) {
-  if (!hasPermission('SPV')) {
-      showAlertModal('Akses Ditolak', 'Anda tidak memiliki izin untuk melakukan Acknowledge Alarm.');
+  if (!hasPermission('ADMIN')) {
+    showAlertModal('Akses Ditolak', 'Anda tidak memiliki izin untuk melakukan Acknowledge Alarm.');
     return;
   }
   STATE.alarms[index].acknowledged = true;
@@ -1386,7 +1386,7 @@ function initializeApp() {
           slidePID.classList.add('hidden');
           slideImg.classList.remove('hidden');
           indicator.textContent = '2 / 2';
-          vizTitle.textContent = '3D Water Intake Visualization / CCTV View ';
+          vizTitle.textContent = '3D Water Intake Visualization / CCTV View (Jika ada)';
       }
   }
   const prevBtn = document.getElementById('viz-prev');
@@ -1431,11 +1431,11 @@ function initializeApp() {
   if (pumpPrev) pumpPrev.onclick = () => { if (pumpCurrentPage > 1) { pumpCurrentPage--; renderPumpLog(); } };
   if (pumpNext) pumpNext.onclick = () => { pumpCurrentPage++; renderPumpLog(); };
 
-  // Admin-only: bind priority UI
+  // SPV-only: bind priority UI
   const savePriorityBtn = document.getElementById('save-priority');
   if (savePriorityBtn) {
       savePriorityBtn.onclick = () => {
-          if (!hasPermission('ADMIN')) { showAlertModal('Akses Ditolak', 'Hanya Admin yang dapat menyimpan prioritas.'); return; }
+          if (!hasPermission('SPV')) { showAlertModal('Akses Ditolak', 'Hanya SPV yang dapat menyimpan prioritas.'); return; }
           const p1 = parseInt(document.getElementById('prio-1').value);
           const p2 = parseInt(document.getElementById('prio-2').value);
           const p3 = parseInt(document.getElementById('prio-3').value);
