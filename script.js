@@ -1063,7 +1063,7 @@ let charts = {
 
 function createPumpCharts() {
   const filtered = applyPumpFilters(STATE.pumpHistory);
-  const last24Hours = filtered.slice(0, 24); // Last 24 data points
+  const last24Hours = filtered.slice(0, 24).reverse(); // Last 24 data points, reversed for chronological order
   
   // Prepare data for pump speed chart
   const speedData = {
@@ -1181,7 +1181,7 @@ function createPumpCharts() {
 
 function createFlowCharts() {
   const filtered = applyFlowFilters(STATE.flowHistory);
-  const last24Hours = filtered.slice(0, 24); // Last 24 data points
+  const last24Hours = filtered.slice(0, 24).reverse(); // Last 24 data points, reversed for chronological order
   
   // Prepare data for debit chart
   const debitData = {
@@ -1300,12 +1300,34 @@ function createAlarmCharts() {
     }]
   };
   
-  // Prepare timeline chart data
+  // Prepare timeline chart data - chronological by time periods
+  const now = new Date();
+  const timeLabels = [];
+  const timeData = [];
+  
+  // Create time periods for the last 24 hours (every 2 hours)
+  for (let i = 11; i >= 0; i--) {
+    const time = new Date(now.getTime() - (i * 2 * 60 * 60 * 1000)); // 2 hours ago
+    const timeStr = time.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+    timeLabels.push(timeStr);
+    
+    // Count events in this 2-hour period
+    const periodStart = new Date(time.getTime());
+    const periodEnd = new Date(time.getTime() + (2 * 60 * 60 * 1000));
+    
+    const count = filtered.filter(item => {
+      const itemTime = new Date(item.timeISO);
+      return itemTime >= periodStart && itemTime < periodEnd;
+    }).length;
+    
+    timeData.push(count);
+  }
+  
   const timelineData = {
-    labels: Object.keys(eventCount),
+    labels: timeLabels,
     datasets: [{
       label: 'Jumlah Events',
-      data: Object.values(eventCount),
+      data: timeData,
       backgroundColor: 'rgba(16, 185, 129, 0.8)',
       borderColor: 'rgb(16, 185, 129)',
       borderWidth: 1
@@ -1320,13 +1342,38 @@ function createAlarmCharts() {
   const priorityCtx = document.getElementById('alarmPriorityChart');
   if (priorityCtx) {
     charts.alarmPriority = new Chart(priorityCtx, {
-      type: 'doughnut',
+      type: 'bar',
       data: priorityData,
       options: {
         responsive: true,
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              stepSize: 1
+            },
+            title: {
+              display: true,
+              text: 'Jumlah Alarm'
+            }
+          },
+          x: {
+            title: {
+              display: true,
+              text: 'Prioritas'
+            }
+          }
+        },
         plugins: {
           legend: {
-            position: 'bottom'
+            display: false
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return `${context.label}: ${context.parsed.y} alarm`;
+              }
+            }
           }
         }
       }
@@ -1348,11 +1395,24 @@ function createAlarmCharts() {
               display: true,
               text: 'Jumlah Events'
             }
+          },
+          x: {
+            title: {
+              display: true,
+              text: 'Waktu (2 jam per periode)'
+            }
           }
         },
         plugins: {
           legend: {
             position: 'top'
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return `${context.label}: ${context.parsed.y} events`;
+              }
+            }
           }
         }
       }
